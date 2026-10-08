@@ -1,0 +1,26 @@
+# Go
+/go-ingestion/bin/
+/go-ingestion/coverage.out
+*.test
+
+# Scala / sbt
+/scala-analysis/target/
+/scala-analysis/project/target/
+/scala-analysis/project/project/
+.bsp/
+.metals/
+.bloop/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local settings and generated data
+.env
+.env.*
+!.env.example
+*.log
+/tmp/
+/data/output/
