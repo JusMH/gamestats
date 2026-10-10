@@ -18,7 +18,7 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 
 ## Estado del proyecto
 
-**Fase inicial: estructura y documentación.** Todavía no hay servicios ejecutables, Dockerfiles, pruebas automatizadas ni deployment. El equipo debe definir juegos, tipos de eventos, métricas y comunicación entre módulos.
+**Implementación 2 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Scala, el simulador, la comunicación entre módulos, Docker, CI/CD y el despliegue todavía están pendientes.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -32,4 +32,11 @@ Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/even
 
 ## Desarrollo
 
-Los comandos de instalación, pruebas y ejecución se documentarán después de elegir la estructura y herramientas de cada módulo. No se requiere instalar nada para leer esta documentación.
+Para ejecutar el servicio Go (Go 1.22 o posterior):
+
+```sh
+cd go-ingestion
+go run ./cmd/server
+```
+
+El servidor escucha en el puerto 8080. Consultar [el README del módulo Go](go-ingestion/README.md) para los endpoints, ejemplos de Postman, políticas de estado y pruebas (`go test ./...`, `go vet ./...` y `go test -race ./...` cuando el entorno lo permita).

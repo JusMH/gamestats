@@ -100,9 +100,13 @@ func TestEvents(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			handler := NewHandler()
+			if tc.status == http.StatusOK {
+				prepareMatch(t, handler, tc.body)
+			}
 			request := httptest.NewRequest(http.MethodPost, "/events", strings.NewReader(tc.body))
 			response := httptest.NewRecorder()
-			NewHandler().ServeHTTP(response, request)
+			handler.ServeHTTP(response, request)
 			if response.Code != tc.status {
 				t.Fatalf("status = %d, want %d; body = %s", response.Code, tc.status, response.Body.String())
 			}
@@ -114,10 +118,10 @@ func TestEvents(t *testing.T) {
 				t.Fatal(err)
 			}
 			if tc.status == 200 {
-				if result["status"] != "validated" || result["eventId"] != "evt-001" || len(result) != 2 {
+				if result["status"] != "accepted" || result["eventId"] != "evt-001" || len(result) != 2 {
 					t.Fatalf("unexpected success: %v", result)
 				}
-			} else if !strings.Contains(result["error"], tc.errorField) || len(result) != 1 {
+			} else if !strings.Contains(result["error"], tc.errorField) || result["status"] != "rejected" || len(result) != 2 {
 				t.Fatalf("unexpected error: %v; want %q", result, tc.errorField)
 			}
 		})
@@ -146,7 +150,7 @@ func TestMethods(t *testing.T) {
 	for _, endpoint := range []struct {
 		path    string
 		allowed string
-	}{{"/health", http.MethodGet}, {"/events", http.MethodPost}} {
+	}{{"/health", http.MethodGet}, {"/events", http.MethodPost}, {"/matches/game/match", http.MethodGet}} {
 		for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead, http.MethodOptions} {
 			if method == endpoint.allowed {
 				continue
