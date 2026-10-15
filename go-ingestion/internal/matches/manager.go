@@ -121,3 +121,33 @@ func cloneEvent(event events.Event) events.Event {
 	event.Data = append([]byte(nil), event.Data...)
 	return event
 }
+
+// EventSnapshot is a detached collection of all accepted v1 events.
+// It describes one instant, including for matches still receiving events.
+type EventSnapshot struct {
+	GameID  string         `json:"gameId"`
+	MatchID string         `json:"matchId"`
+	State   string         `json:"state"`
+	Events  []events.Event `json:"events"`
+}
+
+// GetEvents copies state and event data under the same match read lock.
+// All locks are released before returning to the caller (and any transport).
+func (m *Manager) GetEvents(gameID, matchID string) (EventSnapshot, error) {
+	m.mu.RLock()
+	current := m.matches[key{gameID, matchID}]
+	m.mu.RUnlock()
+	if current == nil {
+		return EventSnapshot{}, ErrNotFound
+	}
+	current.mu.RLock()
+	defer current.mu.RUnlock()
+	snapshot := EventSnapshot{GameID: gameID, MatchID: matchID, State: "open", Events: make([]events.Event, len(current.events))}
+	if current.closed {
+		snapshot.State = "closed"
+	}
+	for i, event := range current.events {
+		snapshot.Events[i] = cloneEvent(event)
+	}
+	return snapshot, nil
+}
