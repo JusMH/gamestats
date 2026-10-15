@@ -18,7 +18,7 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 
 ## Estado del proyecto
 
-**Implementación 2 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Scala, el simulador, la comunicación entre módulos, Docker, CI/CD y el despliegue todavía están pendientes.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. El módulo real Scala, el simulador, Docker, CI/CD y el despliegue todavía están pendientes. Ver la [propuesta de contrato de integración](docs/integration-api.md), pendiente de aprobación del equipo.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 

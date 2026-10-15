@@ -18,7 +18,7 @@ Go: ingestión y orquestación
   - mantiene estado temporal
   - atiende partidas concurrentes con goroutines/channels
          |
-         | HTTP POST /analyze (colección JSON al cerrar la partida)
+         | HTTP POST /analyze (snapshot bajo demanda, abierta o cerrada)
          v
 Scala: análisis funcional
   - recibe y transforma colecciones
@@ -28,7 +28,7 @@ Scala: análisis funcional
          |
          | JSON
          v
-Go: guarda temporalmente el resultado
+Go: valida y devuelve el resultado sin caché
          |
          | GET /results/{gameId}/{matchId}
          v
@@ -84,3 +84,12 @@ Ver [events.md](events.md). El sobre incluye `schemaVersion`, `eventId`, `timest
 - Docker, integración reproducible, CI/CD y deployment documentado.
 
 **Nota:** Este documento representa una propuesta técnica del equipo; no sustituye al enunciado original y podrá evolucionar tras las primeras pruebas.
+
+## Integración disponible en la implementación 3
+
+GET /results obtiene un snapshot completo y llama a Scala sin mantener mutexes
+bloqueados durante la red. No hay envío automático al cerrar, caché ni push.
+Las referencias anteriores al envío al cierre y a guardar resultados describen
+el diseño inicial, no el comportamiento de esta etapa. Consultar la
+[propuesta de integración](integration-api.md), pendiente de aprobación conjunta.
+El módulo Scala real sigue siendo necesario; Go no calcula estadísticas.

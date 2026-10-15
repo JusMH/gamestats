@@ -1,4 +1,4 @@
-# Ingestión y gestión de partidas — Go (implementación 2)
+# Ingestión y gestión de partidas — Go (implementación 3)
 
 El servicio valida el sobre del [contrato v1](../docs/events.md) y conserva
 temporalmente los eventos por `(gameId, matchId)`, conforme a
@@ -281,7 +281,99 @@ El estado es local a una instancia; varios procesos no comparten partidas.
 No hay persistencia durable, reintentos idempotentes ni recuperación tras fallos.
 Las consultas muestran solo estado de ingestión; no incluyen estadísticas.
 
-Todavía no se envían lotes a Scala ni se almacenan resultados analíticos.
+Se envían snapshots a Scala bajo demanda; los resultados analíticos no se almacenan.
 No se implementan bases de datos, Docker, CI/CD, interfaz gráfica ni despliegue.
-Las próximas etapas definirán la entrega de partidas cerradas a Scala,
+Las próximas etapas coordinarán el contrato con el servicio Scala real,
 el manejo de fallos/reintentos y las políticas de retención.
+
+## Integración con Scala bajo demanda
+
+Se implementa exclusivamente el mecanismo HTTP; **todavía requiere el módulo
+real desarrollado en Scala**. El [contrato de integración](../docs/integration-api.md)
+es una **propuesta pendiente de aprobación del equipo** y documenta los límites
+y la política exacta de errores.
+
+```text
+GET /results/{gameId}/{matchId}
+  → Manager.GetEvents: copia consistente y profunda de los eventos
+  → cliente analysis: POST {SCALA_SERVICE_URL}/analyze
+  → Scala: métricas y patrones
+  → Go: valida la respuesta y la devuelve
+```
+
+`internal/matches` no depende de HTTP. `internal/analysis` implementa el cliente
+reutilizable; `httpapi.Analyzer` permite inyectarlo en el handler. El constructor
+anterior `NewHandler()` sigue funcionando, con integración desconfigurada.
+`cmd/server` lee la variable de entorno e inyecta el cliente.
+
+Configurar antes de arrancar (URL base, sin `/analyze`):
+
+```powershell
+$env:SCALA_SERVICE_URL = 'http://localhost:9000'
+cd go-ingestion
+go run ./cmd/server
+```
+
+En una shell POSIX: `SCALA_SERVICE_URL=http://localhost:9000 go run ./cmd/server`.
+Sin variable, los endpoints existentes funcionan y results responde 503 para
+una partida existente. Una URL inválida impide iniciar el servidor.
+
+Enviar primero los eventos de los ejemplos anteriores. Consultar antes o
+después de MATCH_FINISHED:
+
+```sh
+curl http://localhost:8080/results/arena-combat/match-001
+```
+
+En Postman usar GET con la misma URL, sin cuerpo. Ejemplo de estructura de
+respuesta (los valores reales los define Scala):
+
+```json
+{"gameId":"arena-combat","matchId":"match-001","state":"open","metrics":[],"patterns":[]}
+```
+
+| Resultado de GET /results | Código |
+| --- | --- |
+| Respuesta válida de Scala | 200 |
+| Partida inexistente (prioridad sobre configuración) | 404 |
+| Método distinto de GET | 405, Allow: GET |
+| Scala sin configurar | 503 |
+| Conexión fallida, HTTP de Scala distinto de 200, redirección o respuesta inválida | 502 |
+| Timeout o deadline | 504 |
+
+El timeout total es 5 segundos. Se propaga la cancelación del consumidor;
+no se siguen redirecciones, ni se reintenta, ni se exponen errores internos.
+Los resultados exigen identificadores/estado coincidentes y metrics/patterns
+como arreglos no null. El límite de respuesta es 8 MiB.
+
+Cada GET vuelve a analizar todos los eventos aceptados hasta su snapshot;
+no hay caché, push ni análisis automático al cerrar. Durante la llamada HTTP
+pueden seguir llegando eventos: la respuesta corresponde al snapshot enviado,
+no necesariamente al estado de la partida al recibir la respuesta.
+El resumen de `/matches` conserva su formato y no llama a Scala.
+
+### Prueba sin Scala real
+
+Los servidores simulados viven en las pruebas y no implementan análisis:
+
+```sh
+cd go-ingestion
+go test -v ./internal/analysis ./internal/httpapi -run 'TestClient|TestResults'
+```
+
+`TestClientRequestAndResult` simula POST /analyze con `httptest.Server` y
+verifica el JSON completo. `TestResultsLifecycle` ingiere eventos, consulta
+partidas abiertas y cerradas y devuelve datos de prueba del servidor simulado.
+`TestResultsFailures` simula indisponibilidad, timeout, HTTP de error y JSON
+inválido. `TestResultsConcurrentIngestion` mantiene ocho análisis en vuelo
+mientras ingresan eventos y se cierra la partida, comprobando que la red no
+retiene el mutex. Estos servidores existen solo mientras se ejecuta el test;
+no son un servicio Scala ni devuelven métricas reales.
+
+Las nuevas pruebas de snapshots verifican contenido, copia defensiva y
+lecturas/escrituras concurrentes. Se conservan todas las pruebas anteriores.
+Para probar manualmente con un mock externo, configurarlo para responder a
+POST /analyze con HTTP 200 y el JSON de respuesta anterior, haciendo coincidir
+identificadores y state; iniciar Go con su URL base y usar los ejemplos de
+POST /events y GET /results. Confirmar el contrato y reemplazar el mock por
+Scala será responsabilidad conjunta del equipo.

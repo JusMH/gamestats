@@ -150,7 +150,7 @@ func TestMethods(t *testing.T) {
 	for _, endpoint := range []struct {
 		path    string
 		allowed string
-	}{{"/health", http.MethodGet}, {"/events", http.MethodPost}, {"/matches/game/match", http.MethodGet}} {
+	}{{"/health", http.MethodGet}, {"/events", http.MethodPost}, {"/matches/game/match", http.MethodGet}, {"/results/game/match", http.MethodGet}} {
 		for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead, http.MethodOptions} {
 			if method == endpoint.allowed {
 				continue
