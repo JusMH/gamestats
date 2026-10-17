@@ -1,0 +1,64 @@
+{
+  "gameId": "snake",
+  "matchId": "snake-missing-points",
+  "state": "closed",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "snake",
+      "matchId": "snake-missing-points",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "p1",
+          "p2"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a1",
+      "timestamp": "2026-10-17T18:00:01Z",
+      "gameId": "snake",
+      "matchId": "snake-missing-points",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {}
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a2",
+      "timestamp": "2026-10-17T18:00:02Z",
+      "gameId": "snake",
+      "matchId": "snake-missing-points",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 20
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "d1",
+      "timestamp": "2026-10-17T18:00:04Z",
+      "gameId": "snake",
+      "matchId": "snake-missing-points",
+      "playerId": "p1",
+      "type": "PLAYER_DIED",
+      "data": {
+        "cause": "wall"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "f",
+      "timestamp": "2026-10-17T18:00:05Z",
+      "gameId": "snake",
+      "matchId": "snake-missing-points",
+      "type": "MATCH_FINISHED",
+      "data": {}
+    }
+  ]
+}

@@ -18,7 +18,7 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 
 ## Estado del proyecto
 
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. El módulo real Scala, el simulador, Docker, CI/CD y el despliegue todavía están pendientes. Ver la [propuesta de contrato de integración](docs/integration-api.md), pendiente de aprobación del equipo.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. El módulo real Scala, el simulador, Docker, CI/CD y el despliegue todavía están pendientes. Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Los perfiles y fixtures documentan el próximo motor Scala; todavía no lo implementan.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -40,3 +40,13 @@ go run ./cmd/server
 ```
 
 El servidor escucha en el puerto 8080. Consultar [el README del módulo Go](go-ingestion/README.md) para los endpoints, ejemplos de Postman, políticas de estado y pruebas (`go test ./...`, `go vet ./...` y `go test -race ./...` cuando el entorno lo permita).
+
+## Diseño de la Etapa 1
+
+El núcleo permanece genérico. Gato y Snake son juegos principales de demostración; racing verifica la composición configurable de métricas y duración sin lógica específica en el núcleo.
+
+- [Arquitectura](docs/architecture.md), [sobre v1](docs/events.md) e [integración HTTP](docs/integration-api.md).
+- [Perfiles y plantillas](docs/analysis-templates.md), [datos de juegos](docs/games.md) y [resultados en vivo/finales](docs/metrics-and-patterns.md).
+- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y siguiente tarea Scala](docs/implementation-roadmap.md).
+
+La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El diseño analítico y sus salidas esperadas requieren implementación y pruebas contra Scala real.

@@ -1,0 +1,49 @@
+{
+  "gameId": "mystery",
+  "matchId": "unknown",
+  "state": "closed",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "mystery",
+      "matchId": "unknown",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "p1",
+          "p2"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "x",
+      "timestamp": "2026-10-17T18:00:02Z",
+      "gameId": "mystery",
+      "matchId": "unknown",
+      "playerId": "p1",
+      "type": "CUSTOM",
+      "data": {
+        "nested": {
+          "anything": [
+            1,
+            true,
+            null
+          ]
+        },
+        "large": 9007199254740991
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "f",
+      "timestamp": "2026-10-17T18:00:03Z",
+      "gameId": "mystery",
+      "matchId": "unknown",
+      "type": "MATCH_FINISHED",
+      "data": {}
+    }
+  ]
+}

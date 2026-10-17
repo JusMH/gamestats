@@ -1,0 +1,109 @@
+{
+  "gameId": "tic-tac-toe",
+  "matchId": "ttt-win",
+  "state": "closed",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "alex",
+          "bea"
+        ],
+        "symbols": {
+          "alex": "X",
+          "bea": "O"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m1",
+      "timestamp": "2026-10-17T18:00:01Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 1,
+        "row": 0,
+        "column": 0,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m2",
+      "timestamp": "2026-10-17T18:00:02Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 2,
+        "row": 1,
+        "column": 0,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m3",
+      "timestamp": "2026-10-17T18:00:03Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 3,
+        "row": 0,
+        "column": 1,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m4",
+      "timestamp": "2026-10-17T18:00:04Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 4,
+        "row": 1,
+        "column": 1,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m5",
+      "timestamp": "2026-10-17T18:00:05Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 5,
+        "row": 0,
+        "column": 2,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "f",
+      "timestamp": "2026-10-17T18:00:06Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-win",
+      "type": "MATCH_FINISHED",
+      "data": {}
+    }
+  ]
+}

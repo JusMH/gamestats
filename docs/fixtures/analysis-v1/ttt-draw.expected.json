@@ -1,0 +1,120 @@
+{
+  "gameId": "tic-tac-toe",
+  "matchId": "ttt-draw",
+  "state": "closed",
+  "metrics": [
+    {
+      "id": "board.result",
+      "label": "Resultado derivado del tablero",
+      "scope": "match",
+      "subjectId": "ttt-draw",
+      "status": "final",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "value": {
+        "outcome": "draw",
+        "winnerId": null
+      },
+      "unit": "result"
+    },
+    {
+      "id": "duration.match",
+      "label": "Duración de partida",
+      "scope": "match",
+      "subjectId": "ttt-draw",
+      "status": "final",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "duration",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "value": 10,
+      "unit": "seconds"
+    },
+    {
+      "id": "moves.match",
+      "label": "Movimientos de la partida",
+      "scope": "match",
+      "subjectId": "ttt-draw",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "value": 9,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "alex",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "value": 5,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "bea",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "value": 4,
+      "unit": "events"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "board.winning_line",
+      "label": "Primera línea ganadora",
+      "scope": "match",
+      "subjectId": "ttt-draw",
+      "status": "final",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 11,
+        "lastEventId": "f"
+      },
+      "count": 0,
+      "occurrences": []
+    }
+  ]
+}
