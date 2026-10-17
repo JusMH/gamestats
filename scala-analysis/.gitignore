@@ -1,0 +1,7 @@
+/target/
+/project/target/
+/project/project/
+/.tools/
+/.cache/
+/.bsp/
+/.metals/

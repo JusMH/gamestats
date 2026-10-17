@@ -18,7 +18,7 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 
 ## Estado del proyecto
 
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. El módulo real Scala, el simulador, Docker, CI/CD y el despliegue todavía están pendientes. Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Los perfiles y fixtures documentan el próximo motor Scala; todavía no lo implementan.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4A ya ofrece HTTP real y el motor genérico count/sum/avg y duración. Las ventanas temporales y el analizador Gato siguen pendientes de 4B; el simulador, Docker, CI/CD y el despliegue también están pendientes. Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [decisiones y verificaciones 4A](docs/scala-4a.md): racing y juegos sin perfil ya se prueban con el motor real.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -49,4 +49,4 @@ El núcleo permanece genérico. Gato y Snake son juegos principales de demostrac
 - [Perfiles y plantillas](docs/analysis-templates.md), [datos de juegos](docs/games.md) y [resultados en vivo/finales](docs/metrics-and-patterns.md).
 - [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y siguiente tarea Scala](docs/implementation-roadmap.md).
 
-La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El diseño analítico y sus salidas esperadas requieren implementación y pruebas contra Scala real.
+La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El subconjunto 4A ya se implementó y probó contra Scala real; los fixtures de Snake y Gato requieren completar 4B.
