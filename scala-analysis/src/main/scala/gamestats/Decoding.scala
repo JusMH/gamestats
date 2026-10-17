@@ -47,7 +47,8 @@ object Decoding:
       version <- read(fields, "schemaVersion")(integer)
       _ <- ensure(version == 1, "schema_version", "schemaVersion")
       id <- read(fields, "eventId")(str)
-      time <- read(fields, "timestamp")(timestamp)
+      timeText <- read(fields, "timestamp")(str)
+      time <- timestamp(Str(timeText))
       game <- read(fields, "gameId")(str)
       m <- read(fields, "matchId")(str)
       player <- optional(fields, "playerId")(optionalString)
@@ -55,7 +56,7 @@ object Decoding:
       kind <- read(fields, "type")(str)
       data <- field(fields, "data")
       _ <- obj(data)
-    yield Event(id, time, game, m, player, kind, data)
+    yield Event(id, time, game, m, player, kind, data, timeText)
 
   def snapshot(value: Json): Checked[Snapshot] =
     for
@@ -155,11 +156,9 @@ object Decoding:
       decoded <- decoder(value)
     yield decoded
 
-  private def board(value: Json): Checked[Board] =
+  private def board(value: Json): Checked[AnalyzerConfig] =
     for
       fields <- strict(value, Set("analyzerId", "instanceId", "availability", "parameters"))
-      name <- read(fields, "analyzerId")(str)
-      _ <- ensure(name == "tic-tac-toe-line/v1", "unknown_analyzer", "analyzerId")
       id <- read(fields, "instanceId")(str)
       available <- read(fields, "availability")(availability)
       _ <- ensure(available == Availability.Live, "invalid_availability", "availability")
@@ -167,6 +166,17 @@ object Decoding:
       result <- read(params, "resultMetricId")(str)
       pattern <- read(params, "patternId")(str)
     yield Board(id, result, pattern)
+
+  val analyzerDecoders: Map[String, Json => Checked[AnalyzerConfig]] =
+    Map("tic-tac-toe-line/v1" -> board)
+
+  private def analyzer(value: Json): Checked[AnalyzerConfig] =
+    for
+      fields <- obj(value)
+      id <- read(fields, "analyzerId")(str)
+      decode <- analyzerDecoders.get(id).toRight(ValidationError("unknown_analyzer", "analyzerId"))
+      result <- decode(value)
+    yield result
 
   def profile(value: Json): Checked[Profile] =
     for
@@ -182,7 +192,7 @@ object Decoding:
       rawAnalyzers <- read(fields, "specializedAnalyzers")(arr)
       _ <- ensure(rawCaps.size + rawAnalyzers.size <= 128, "capability_limit", "capabilities")
       caps <- traverse(rawCaps)(capability)
-      analyzers <- traverse(rawAnalyzers)(board)
+      analyzers <- traverse(rawAnalyzers)(analyzer)
       instances = caps.map(_.instanceId) ++ analyzers.map(_.instanceId)
       ids = caps.flatMap(_.outputIds) ++ analyzers.flatMap(_.outputIds)
       _ <- ensure(instances.distinct.size == instances.size, "duplicate_instance", "instanceId")

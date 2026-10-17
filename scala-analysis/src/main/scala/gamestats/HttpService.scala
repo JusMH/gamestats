@@ -78,8 +78,7 @@ object HttpService:
             yield analyzed
             result match
               case Left(problem) =>
-                val status = if problem.code == "capability_not_implemented" then 501 else 400
-                send(exchange, status, error(problem.code))
+                send(exchange, 400, error(problem.code))
               case Right(analyzed) =>
                 send(exchange, 200, analyzed.json)
     catch

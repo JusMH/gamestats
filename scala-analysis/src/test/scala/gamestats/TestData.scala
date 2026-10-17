@@ -6,9 +6,8 @@ object TestData:
   val repo: Path = Path.of("..").toAbsolutePath.normalize()
   val fixtures: Path = repo.resolve("docs/fixtures/analysis-v1")
   val profiles: Path = repo.resolve("docs/examples/profiles")
-  val supported = Vector("race-start", "race-live-2", "race-live-3", "race-final", "unknown-game")
-  val pending = Vector("ttt-win", "ttt-draw", "ttt-open", "snake-positive",
-    "snake-negative", "snake-invalid-number", "snake-missing-points", "snake-tied")
+  val supported: Vector[String] = array(field(file(fixtures.resolve("manifest.json")), "cases"))
+    .map(value => right(Json.str(field(value, "id"))))
   def right[A](result: Checked[A]): A = result.fold(
     e => throw new AssertionError(e.toString), identity)
   def parse(text: String): Json = right(Json.parse(text))

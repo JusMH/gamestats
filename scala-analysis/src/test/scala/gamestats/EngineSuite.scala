@@ -9,12 +9,6 @@ class EngineSuite extends munit.FunSuite:
       assertEquals(right(engine.analyze(snapshot(id))).json, result.json)
     }
   }
-  pending.foreach { id =>
-    test("4B pending; never report partial success: " + id) {
-      assertEquals(engine.analyze(snapshot(id)).left.map(_.code),
-        Left("capability_not_implemented"))
-    }
-  }
 
   test("a new game is only a profile change; composition is preserved") {
     val configured = update(profile, "gameId", Json.Str("new-game"))

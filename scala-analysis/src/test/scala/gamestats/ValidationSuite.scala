@@ -2,12 +2,13 @@ package gamestats
 
 class ValidationSuite extends munit.FunSuite:
   import TestData.*
-  test("all approved profiles are recognized, while pending capabilities remain explicit") {
+  test("all approved profiles have registered capability and analyzer executors") {
     val loaded = right(Profiles.load(profiles))
     assertEquals(loaded.keySet, Set("racing", "snake", "tic-tac-toe"))
-    assertEquals(loaded("racing").pending, Vector.empty)
-    assertEquals(loaded("snake").pending, Vector("temporal-window/v1"))
-    assertEquals(loaded("tic-tac-toe").pending, Vector("tic-tac-toe-line/v1"))
+    loaded.values.foreach { profile =>
+      assert(profile.capabilities.forall(cap => Capabilities.registry.contains(cap.templateId)))
+      assert(profile.analyzers.forall(analyzer => Analyzers.registry.contains(analyzer.analyzerId)))
+    }
   }
   val badProfiles: Vector[(String, Json => Json)] = Vector(
     "version" -> (j => update(j, "profileSchemaVersion", Json.IntNum(2))),

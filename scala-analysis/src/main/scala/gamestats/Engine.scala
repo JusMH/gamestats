@@ -10,6 +10,20 @@ case class AnalysisContext(snapshot: Snapshot, profile: Profile, players: Vector
     if scope == Scope.Match then Vector(snapshot.matchId) else players
   def source(cap: Capability): Source =
     Source(cap.templateId, cap.instanceId, profile.version)
+  def source(analyzer: AnalyzerConfig): Source =
+    Source(analyzer.analyzerId, analyzer.instanceId, profile.version, SourceKind.Analyzer)
+  lazy val acceptanceIndex: Map[String, Int] =
+    snapshot.events.zipWithIndex.map((event, index) => event.eventId -> index).toMap
+  def ordered(events: Vector[Event]): Vector[Event] =
+    events.sortWith { (a, b) =>
+      val time = a.timestamp.compareTo(b.timestamp)
+      time < 0 || (time == 0 && acceptanceIndex(a.eventId) < acceptanceIndex(b.eventId))
+    }
+  def timeError(events: Vector[Event]): Option[String] =
+    val start = snapshot.events.head.timestamp
+    val finish = snapshot.events.find(_.kind == "MATCH_FINISHED").map(_.timestamp)
+    Option.when(finish.exists(_.isBefore(start)) ||
+      events.exists(e => e.timestamp.isBefore(start) || finish.exists(e.timestamp.isAfter)))("invalid_time")
   def playerError(events: Vector[Event]): Option[String] =
     if events.exists(_.playerId.forall(_.isEmpty)) then Some("missing_player")
     else if profile.playersField.isDefined && events.exists(e => !players.contains(e.playerId.get))
@@ -18,13 +32,16 @@ case class AnalysisContext(snapshot: Snapshot, profile: Profile, players: Vector
 
 /** Registered pure interpreters. Configuration dispatch never depends on gameId. */
 object Capabilities:
-  type Runner = (Capability, AnalysisContext) => Vector[Metric]
+  type Runner = (Capability, AnalysisContext) => Outputs
   val registry: Map[String, Runner] = Map(
     "event-metrics/v1" -> ((cap, ctx) => cap match
-      case metrics: EventMetrics => eventMetrics(metrics, ctx)
+      case metrics: EventMetrics => Outputs(metrics = eventMetrics(metrics, ctx))
       case _ => throw new IllegalStateException("Capability registry type mismatch")),
     "duration/v1" -> ((cap, ctx) => cap match
-      case interval: Interval => duration(interval, ctx)
+      case interval: Interval => Outputs(metrics = duration(interval, ctx))
+      case _ => throw new IllegalStateException("Capability registry type mismatch")),
+    "temporal-window/v1" -> ((cap, ctx) => cap match
+      case window: Window => Outputs(patterns = TemporalWindow.analyze(window, ctx))
       case _ => throw new IllegalStateException("Capability registry type mismatch")))
 
   private def unavailable(metric: Metric, reason: String): Metric =
@@ -108,22 +125,23 @@ final class Engine(val profiles: Map[String, Profile]):
     if snapshot.events.isEmpty then Left(ValidationError("event_limit", "events"))
     else profiles.get(snapshot.gameId) match
       case None => Right(AnalysisResult(snapshot.gameId, snapshot.matchId, snapshot.state, Vector.empty))
-      case Some(profile) if profile.pending.nonEmpty =>
-        Left(ValidationError("capability_not_implemented", profile.pending.distinct.mkString(",")))
       case Some(profile) =>
         for
           players <- participants(snapshot, profile)
-          _ <- Json.ensure(profile.capabilities.map(_.outputIds.size).sum.toLong *
+          _ <- Json.ensure((profile.capabilities.map(_.outputIds.size).sum.toLong +
+            profile.analyzers.map(_.outputIds.size).sum) *
             math.max(1, players.size) <= 20000, "result_limit", "metrics")
         yield
           val context = AnalysisContext(snapshot, profile, players)
-          val metrics = profile.capabilities.flatMap(cap =>
-            Capabilities.registry(cap.templateId)(cap, context))
+          val outputs = profile.capabilities.map(cap => Capabilities.registry(cap.templateId)(cap, context)) ++
+            profile.analyzers.map(analyzer => Analyzers.registry(analyzer.analyzerId)(analyzer, context))
+          val combined = outputs.foldLeft(Outputs())(_ ++ _)
           AnalysisResult(snapshot.gameId, snapshot.matchId, snapshot.state,
-            metrics.sortWith((a, b) => compareKeys(a, b) < 0))
+            combined.metrics.sortWith((a, b) => compareKeys(a, b) < 0),
+            combined.patterns.sortWith((a, b) => compareKeys(a, b) < 0))
 
   // Code-point ordering, independent of JVM locale and UTF-16 surrogate ordering.
-  private def compareKeys(a: Metric, b: Metric): Int =
+  private def compareKeys(a: ResultRow, b: ResultRow): Int =
     Vector(a.id -> b.id, a.scope.wire -> b.scope.wire, a.subjectId -> b.subjectId)
       .iterator.map { (left, right) =>
         val xs = left.codePoints().toArray
@@ -143,7 +161,8 @@ final class Engine(val profiles: Map[String, Profile]):
             players.distinct.size == players.size, "invalid_roster", "players").map(_ => players))
           .left.map(_ => ValidationError("invalid_roster", "players"))
       case None =>
-        val relevant = profile.capabilities.flatMap(_.playerEventTypes).toSet
+        val relevant = (profile.capabilities.flatMap(_.playerEventTypes) ++
+          profile.analyzers.flatMap(_.playerEventTypes)).toSet
         val players = snapshot.events.filter(e => relevant(e.kind))
           .flatMap(_.playerId.filter(_.nonEmpty)).distinct
         Json.ensure(players.size <= 1000, "player_limit", "players").map(_ => players)

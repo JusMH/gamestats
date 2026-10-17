@@ -1,7 +1,8 @@
-# GameStats Scala — implementación 4A
+# GameStats Scala — implementación 4B
 
 Servicio real Scala 3 con POST /analyze y GET /health. Ejecuta perfiles
-declarativos con event-metrics/v1 (count/sum/avg) y duration/v1.
+declarativos con event-metrics/v1 (count/sum/avg), duration/v1,
+temporal-window/v1 y el analizador tic-tac-toe-line/v1.
 No hay lógica por videojuego en el ejecutor, estado entre consultas,
 simulador, Docker, CI/CD ni base de datos.
 
@@ -125,6 +126,8 @@ src/main/scala/gamestats/
   Model.scala        Eventos, snapshots, perfiles, métricas, patrones y errores
   Decoding.scala     Validación tipada y carga de perfiles
   Engine.scala       Interpretación funcional, composición y capacidades
+  TemporalWindow.scala Ventanas genéricas con consumo greedy
+  TicTacToeLine.scala Analizador especializado y registro analyzerId
   HttpService.scala  HTTP JDK, concurrencia y códigos
   Main.scala         Variables, carga inicial y ciclo de vida
 src/test/scala/gamestats/
@@ -132,6 +135,7 @@ src/test/scala/gamestats/
   EngineSuite.scala
   ValidationSuite.scala
   HttpSuite.scala
+  PatternsSuite.scala
 ~~~
 
 El motor se invoca sin servidor con Engine.analyze(snapshot), que devuelve
@@ -144,28 +148,29 @@ campos JSON Pointer, operaciones, ámbitos y presentación. Un registro
 resuelve capacidades; no existe switch/if por gameId ni scripts evaluados.
 filter selecciona, groupBy agrupa jugadores, map extrae valores validados,
 foldLeft acumula sumas exactas y validaciones, flatMap compone resultados.
-collect identifica tipos de capacidades pendientes, sin descartar muestras
-numéricas incorrectas.
+Las ventanas ordenan por UTC e índice original; el tablero usa foldLeft
+con estado inmutable y se selecciona por analyzerId. No se descartan
+muestras numéricas incorrectas silenciosamente.
 
 Para otro juego basta añadir un perfil basado en las capacidades disponibles.
 Las pruebas agregan un gameId y una métrica sin cambiar el ejecutor.
 No se reescribieron los perfiles ni fixtures aprobados.
 
-## Política explícita para 4B
+## Capacidades y analizadores disponibles
 
-Se cargan y validan los tres perfiles aprobados sin alterarlos.
-temporal-window/v1 y tic-tac-toe-line/v1 se reconocen como contratos
-pendientes, pero NO se ejecutan. Si el perfil los incluye, se rechaza
-todo el análisis con HTTP 501 y {"error":"capability_not_implemented"}.
-No se omiten capacidades silenciosamente ni se devuelve un 200 parcial.
+Los tres perfiles aprobados se ejecutan completos, sin reescribirlos.
+temporal-window/v1 usa N y duración configurados, límite inclusivo y consumo
+sin solapamientos. tic-tac-toe-line/v1 reconstruye el tablero, verifica sus
+datos y detecta la primera línea según el desempate documentado.
 
-Por ello los perfiles completos Snake y Gato todavía no son ejecutables.
-La capacidad genérica inicio-muerte sí está implementada y probada en
-aislamiento; eso no significa que el perfil completo Snake haya pasado.
-Un ID de plantilla/analizador verdaderamente desconocido impide arrancar,
-como exige la Etapa 1. El tratamiento de contratos conocidos pendientes es
-una política transitoria documentada en [scala-4a.md](../docs/scala-4a.md).
-Go transforma 501 de Scala en 502, manteniendo su comportamiento actual.
+Snake y Gato responden HTTP 200 con métricas y patrones completos.
+Se eliminó la política transitoria 501. Una configuración con IDs o versiones
+desconocidos sigue impidiendo arrancar; no se ignoran capacidades.
+
+source distingue templateId/analyzerId; board.result admite valor estructurado
+y las ocurrencias de línea incluyen details. Los valores inválidos o no
+disponibles siguen usando null y reason. El contrato exterior no cambia.
+[Arquitectura, alcance y verificación de 4B](../docs/scala-4b.md).
 
 ## Errores, precisión y límites
 
@@ -177,7 +182,6 @@ Go transforma 501 de Scala en 502, manteniendo su comportamiento actual.
 | Método no permitido | 405 y Allow |
 | Ruta desconocida | 404 |
 | Petición mayor de 8 MiB | 413 |
-| Capacidad pendiente del perfil | 501 |
 | Respuesta superior a 8 MiB | 503 |
 | Fallo interno | 500 genérico |
 
@@ -210,41 +214,59 @@ Son límites operativos explícitos, no nuevas reglas del juego.
 .\sbtw.ps1 compile test
 ~~~
 
-Las suites prueban el motor puro y peticiones HTTP reales en puerto efímero,
-incluyendo concurrencia, repetición, números grandes, precisión, datos
-incorrectos, perfiles inválidos, duración y configuración del servidor.
+**143 pruebas Scala aprobadas**. Los 13 fixtures se comparan completos en
+el motor puro, mediante HTTP real y en consultas concurrentes. Las pruebas
+anteriores de configuración, precisión, duración y composición se conservan.
 
-| Fixtures completos comparados con expected | Estado 4A |
+| Fixtures completos comparados con expected | Estado 4B |
 | --- | --- |
-| race-start, race-live-2, race-live-3, race-final | Ejecutados, motor y HTTP |
-| unknown-game | Ejecutado, motor y HTTP |
-| ttt-win, ttt-draw, ttt-open | Pendientes de 4B |
-| snake-positive, snake-negative, snake-invalid-number, snake-missing-points, snake-tied | Pendientes de 4B |
+| race-start, race-live-2, race-live-3, race-final | Motor, HTTP y Go → Scala |
+| unknown-game | Motor, HTTP y Go → Scala |
+| ttt-win, ttt-draw, ttt-open | Motor, HTTP y Go → Scala |
+| snake-positive, snake-negative, snake-invalid-number, snake-missing-points, snake-tied | Motor, HTTP y Go → Scala |
 
-Las pruebas de los ocho casos pendientes comprueban su rechazo explícito;
-NO comparan una respuesta analítica completa ni afirman que sus reglas pasen.
-El verificador Python de la Etapa 1 sigue siendo un oráculo de diseño,
-no sustituye estas pruebas Scala.
+Se verifican valores, sujetos, estados, unidades, procedencia, versión,
+basis, reasons, occurrences y detalles de tablero. No se modificaron los
+expected. Las suites cubren un nanosegundo fuera del límite, 9000 candidatos,
+solapamientos, zonas equivalentes, eventos tardíos, errores independientes,
+las ocho líneas ganadoras, desempates, casillas/turnos/símbolos inválidos,
+ganadores ambiguos y estados parciales.
 
-## Siguiente etapa
+### Integración reproducible con procesos reales
 
-Registrar temporal-window/v1 con orden (timestamp, índice de aceptación),
-límite inclusivo y consumo sin solapamientos; implementar después el
-analizador de tablero Gato y su procedencia analyzerId.
-Ejecutar los ocho fixtures pendientes completos, además de eventos simultáneos,
-tardíos, casillas inválidas, doble ganador y snapshots parciales.
-No añadir simulador, Docker, UI, persistencia ni un lenguaje universal dentro de 4B.
+1. Iniciar Scala como se indica arriba.
+2. Iniciar un proceso Go nuevo, sin partidas previas, con
+   SCALA_SERVICE_URL=http://localhost:9000.
+3. Desde la raíz del repositorio, con Python 3.10+:
 
-## Evidencia de verificación de 4A
+~~~sh
+python scala-analysis/scripts/check-go.py --evidence-dir scala-analysis/.tools/integration-4b
+~~~
 
-En el entorno de esta entrega: compilación correcta y **91 pruebas MUnit**
-aprobadas. Los cinco fixtures ejecutables se compararon completos en el
-motor y por HTTP real; los ocho de 4B siguen pendientes.
-También pasaron go test ./..., go vet ./... y el verificador Python de la
-Etapa 1 (30 JSON, 13 pares, nueve mutaciones inválidas de perfiles).
+La prueba no es un simulador: envía únicamente los eventos aprobados de los
+fixtures y compara respuestas completas. No genera acontecimientos nuevos.
+No usa mocks, no reescribe resultados y no borra partidas existentes.
+Un segundo intento requiere reiniciar Go porque los IDs ya estarán aceptados.
 
-Se ejecutaron ambos procesos reales: Go aceptó secuencialmente los cinco
-eventos de race-final, y GET /results se consultó dos veces en los cuatro
-prefijos race-start, race-live-2, race-live-3 y race-final. Las ocho respuestas
-completas coincidieron con sus expected aprobados. Ambos procesos de prueba
-se detuvieron al terminar; no hay servicios que el usuario deba limpiar.
+Resultado ejecutado: **61 eventos**, **10 partidas**, **13 fixtures**,
+**26 respuestas secuenciales** y **20 concurrentes**, todas correctas.
+Los prefijos de carreras se consultan antes de avanzar; no se reingieren.
+Las respuestas y summary.json se guardan en evidence-dir si se solicita.
+La verificación de esta entrega detuvo sus procesos propios al finalizar.
+
+También pasaron go test ./..., go vet ./... y el verificador Python de
+la Etapa 1 (30 JSON, 13 pares y nueve mutaciones inválidas de perfiles).
+El verificador documental sigue siendo un oráculo de diseño; no sustituye
+las pruebas Scala ni la integración real.
+
+## Alcance y siguiente tarea
+
+El tablero comprueba evidencia de una línea, no alternancia, X primero ni
+detención inmediata tras ganar. Un cierre incompleto no inventa un empate:
+resultado unavailable/insufficient_evidence, con cero líneas observadas.
+No se valida física de Snake ni legalidad semántica de vueltas.
+
+La próxima tarea será el simulador multijuego determinista, con Gato,
+Snake y racing, partidas intercaladas y consultas abiertas/finales.
+No se implementaron simulador, Docker, CI/CD, deployment, base de datos,
+WebSockets/SSE ni reglas universales dentro de 4B.
