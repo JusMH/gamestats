@@ -15,8 +15,6 @@ object Main:
           val running = HttpService.start(new Engine(profiles), config)
           Runtime.getRuntime.addShutdownHook(new Thread(() => running.close()))
           println("GameStats Scala listening on " + config.host + ":" + running.port)
-          val pending = profiles.values.filter(_.pending.nonEmpty).map(_.gameId).toVector.sorted
-          if pending.nonEmpty then println("Profiles requiring 4B (HTTP 501): " + pending.mkString(", "))
         catch
           case scala.util.control.NonFatal(_) =>
             System.err.println("Cannot bind analysis HTTP service")

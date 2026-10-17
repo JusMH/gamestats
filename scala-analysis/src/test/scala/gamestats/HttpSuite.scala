@@ -54,11 +54,10 @@ class HttpSuite extends munit.FunSuite:
       assert(right(Json.obj(parse(response.body()))).contains("error"))
     }
   }
-  test("HTTP marks pending capabilities as unimplemented, never empty success") {
+  test("all composed profiles execute; no transient 501 policy remains") {
+    assertEquals(supported.size, 13)
     Vector("snake-positive", "ttt-win").foreach { id =>
-      val response = send("POST", "/analyze", Json.text(fixture(id, "request")))
-      assertEquals(response.statusCode(), 501)
-      assertEquals(parse(response.body()), parse("""{"error":"capability_not_implemented"}"""))
+      assertEquals(send("POST", "/analyze", Json.text(fixture(id, "request"))).statusCode(), 200)
     }
   }
   test("bad roster is HTTP 400, not a fabricated player") {
@@ -87,5 +86,18 @@ class HttpSuite extends munit.FunSuite:
       val laps = metrics.find(m => field(m, "id") == Json.Str("laps.player") &&
         field(m, "subjectId") == Json.Str("p1")).get
       assertEquals(field(laps, "value"), Json.IntNum(3))
+    }
+  }
+
+  test("all 13 complete fixture responses are stable under concurrent HTTP requests") {
+    val cases = supported ++ supported
+    val futures = cases.map { id =>
+      client.sendAsync(request("POST", "/analyze", Json.text(fixture(id, "request"))),
+        HttpResponse.BodyHandlers.ofString())
+    }
+    futures.zip(cases).foreach { (future, id) =>
+      val response = future.get(15, java.util.concurrent.TimeUnit.SECONDS)
+      assertEquals(response.statusCode(), 200)
+      assertEquals(parse(response.body()), fixture(id, "expected"))
     }
   }
