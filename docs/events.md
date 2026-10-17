@@ -1,162 +1,101 @@
-# Contrato de eventos — GameStats (propuesta v1)
+# Contrato común de eventos v1
 
-> Estado: diseño inicial para revisión del equipo. El formato es un acuerdo **entre componentes**, no una estructura propia de Go. Se basa en el enunciado del proyecto y en el enfoque híbrido acordado: núcleo genérico + métricas declarativas sencillas + analizadores especializados en Scala.
+Estado: contrato de ingestión ya implementado en Go; esta etapa documenta
+su compatibilidad y define datos de demostración para el futuro Scala.
+No se modifica código ni se afirma que los analizadores estén implementados.
 
-## Principio de diseño
-
-GameStats debe poder **recibir** eventos de un juego desconocido sin agregar nuevos tipos de estructuras en Go. Eso **no** significa que pueda inferir automáticamente el significado de cualquier dato: el análisis requiere una configuración de métricas o un analizador que conozca su semántica.
-
-- **Sobre (envelope) común**: identificación, tiempo y relación con juego y partida.
-- **`data` flexible**: objeto JSON arbitrario definido por el productor de eventos.
-- **Go**: valida el sobre, acepta y agrupa eventos, coordina procesamiento concurrente.
-- **Scala**: valida semántica cuando es necesaria, aplica métricas configuradas y ejecuta reglas de secuencia.
-
-## Formato de un evento
+## Sobre estable
 
 ```json
 {
   "schemaVersion": 1,
-  "eventId": "evt-001",
-  "timestamp": "2026-10-10T18:00:00Z",
-  "gameId": "arena-combat",
+  "eventId": "apple-1",
+  "timestamp": "2026-10-17T18:00:01Z",
+  "gameId": "snake",
   "gameVersion": "1.0",
   "matchId": "match-001",
-  "playerId": "player-01",
-  "type": "DAMAGE_DEALT",
-  "data": {
-    "targetId": "player-02",
-    "amount": 35
-  }
+  "playerId": "p1",
+  "type": "APPLE_EATEN",
+  "data": {"points": 10}
 }
 ```
 
-### Campos comunes
+| Campo | Regla de ingestión Go |
+| --- | --- |
+| schemaVersion | Obligatorio; entero JSON escrito como 1, no "1" ni 1.0. |
+| eventId | Cadena no vacía ni solo espacios; única por (gameId, matchId). |
+| timestamp | Cadena RFC3339 válida con zona Z o desplazamiento; admite fracciones. |
+| gameId | Cadena no vacía ni solo espacios; no existe catálogo obligatorio en Go. |
+| gameVersion | Cadena opcional; no es la versión del perfil analítico. |
+| matchId | Cadena no vacía ni solo espacios. |
+| playerId | Cadena opcional; puede omitirse para eventos de partida. |
+| type | Cadena no vacía; UPPER_SNAKE_CASE es una convención, no una enumeración cerrada. |
+| data | Objeto JSON obligatorio; admite {} y contenido desconocido. |
 
-| Campo | Obligatorio | Tipo | Regla v1 |
-| --- | --- | --- | --- |
-| `schemaVersion` | Sí | entero | `1`, versión del sobre de GameStats, no del juego |
-| `eventId` | Sí | cadena no vacía | identifica un evento; no puede repetirse dentro de la misma partida |
-| `timestamp` | Sí | cadena | fecha/hora RFC 3339 con zona horaria, p. ej. `2026-10-10T18:00:00Z` |
-| `gameId` | Sí | cadena no vacía | juego de origen |
-| `gameVersion` | No | cadena | versión del videojuego, independiente de `schemaVersion` |
-| `matchId` | Sí | cadena no vacía | partida dentro de un juego |
-| `playerId` | No | cadena | omitir para eventos de toda la partida, como `MATCH_STARTED` |
-| `type` | Sí | cadena no vacía | convención `UPPER_SNAKE_CASE` |
-| `data` | Sí | objeto JSON | puede ser `{}`; significado según el tipo de evento y el juego |
+Los opcionales presentes deben ser cadenas: null se rechaza; "" se acepta
+y Go omite esos opcionales vacíos al transmitir un snapshot.
+Los nombres son sensibles a mayúsculas. Se rechazan claves repetidas del
+sobre, cuerpos múltiples y JSON inválido. Límite de ingestión: 1 MiB.
+Los identificadores no se recortan ni normalizan: "p1" y " p1" son distintos.
+Para los fixtures y productores recomendamos identificadores sin espacios
+periféricos. Los campos adicionales del sobre se aceptan, pero no se
+conservan en el modelo Go. Las extensiones deben ir dentro de data.
 
-`action` es un campo ilustrativo del enunciado, **no requerido** en nuestra v1: preferimos identificar la acción con `type` y poner los atributos variables en `data`. Podría incorporarse después si surge una necesidad concreta.
+data usa json.RawMessage: se conserva su contenido numérico y estructural
+sin exigir atributos del videojuego ni convertir números a float64.
+La serialización puede cambiar espacios y escapes; no garantiza igualdad
+textual del JSON. No debe codificarse información significativa en claves
+repetidas dentro de data: el futuro Scala las rechazará como dominio inválido.
 
-La clave de agrupación es **(`gameId`, `matchId`)**, no solo `matchId`. En v1 rechazaremos identificadores de eventos duplicados dentro de esa clave; si ya existe el ID con otro contenido, también se considera conflicto. Go debe verificar que `data` sea un objeto, sin exigir campos como `amount`, `lap` o `weapon`.
+## Ciclo de vida ya implementado
 
-## Tipos iniciales para la demostración
+- MATCH_STARTED debe ser el primer evento aceptado. Crea una partida open.
+- Solo existe una partida por (gameId, matchId) durante la vida del proceso.
+- Eventos siguientes se agregan en orden de aceptación.
+- MATCH_FINISHED se almacena y cambia el estado a closed.
+- No se admiten eventos nuevos después del cierre ni un segundo inicio.
+- Duplicados devuelven 409 aunque sean idénticos o la partida ya esté cerrada.
+- Eventos rechazados no cambian el estado ni el conjunto almacenado.
+- Un matchId o eventId puede reutilizarse en otra combinación de juego/partida.
 
-Eventos comunes:
-- `MATCH_STARTED`: inicio de partida (`playerId` omitido, `data: {}`).
-- `MATCH_FINISHED`: final de partida (`playerId` omitido, `data: {}`).
+El productor espera la aceptación del inicio y de todos los eventos anteriores
+antes de enviar el cierre. No hay garantías de entrega exactamente una vez,
+reintentos idempotentes, persistencia ni reapertura.
+El timestamp no decide el orden de ingestión ni el cierre.
 
-Combate (`gameId: "arena-combat"`):
-- `DAMAGE_DEALT`: requiere `playerId`; `data.targetId` (cadena) y `data.amount` (número no negativo).
-- `PLAYER_ELIMINATED`: requiere `playerId` (atacante); `data.targetId` (jugador eliminado).
+## Datos del dominio y propiedad del contrato
 
-Carreras (`gameId: "racing"`):
-- `LAP_COMPLETED`: requiere `playerId`; `data.lap` (entero positivo) y `data.durationMs` (entero positivo).
-- `POSITION_CHANGED`: requiere `playerId`; `data.position` (entero positivo).
+Solo los tipos comunes de inicio/cierre tienen efecto de control en Go.
+Para ellos Go también admite data arbitrario: no exige players, símbolos,
+dimensiones ni resultados. Un evento con points como texto puede almacenarse;
+su análisis numérico será inválido en Scala.
 
-Estos campos específicos los valida la lógica de análisis de Scala para cada juego. El simulador producirá ejemplos válidos e inválidos, varias partidas y jugadores, y juegos en paralelo.
+[games.md](games.md) es la fuente normativa de datos para Gato, Snake y
+carreras. Esos requisitos los consumen perfiles y analizadores Scala,
+nunca condicionales por juego en Go. Nuevos juegos pueden adoptar otros
+tipos de eventos y objetos data sin cambiar el sobre.
 
-## Métricas híbridas
+Los ejemplos históricos de arena-combat (DAMAGE_DEALT, PLAYER_ELIMINATED)
+siguen siendo eventos admisibles por Go, pero combate no es un analizador
+obligatorio ni un juego simulado del MVP seleccionado.
 
-### Nivel A: métricas declarativas sencillas
+## Snapshots, consulta en vivo y cierre
 
-Un archivo de configuración describe operaciones reutilizables. Propuesta de sintaxis (se formalizará junto con el motor Scala):
+GET /results/{gameId}/{matchId} toma todos los eventos aceptados hasta un
+instante, con state open o closed. Cada consulta solicita POST /analyze.
+No hay envío automático al aceptar MATCH_FINISHED, caché ni almacenamiento
+de resultados analíticos.
 
-```json
-{
-  "gameId": "arena-combat",
-  "metrics": [
-    {
-      "id": "damage_total",
-      "label": "Daño total",
-      "scope": "player",
-      "eventType": "DAMAGE_DEALT",
-      "operation": "sum",
-      "field": "data.amount",
-      "unit": "HP"
-    },
-    {
-      "id": "eliminations",
-      "label": "Eliminaciones",
-      "scope": "player",
-      "eventType": "PLAYER_ELIMINATED",
-      "operation": "count",
-      "unit": "kills"
-    }
-  ]
-}
-```
+La colección viaja en orden de aceptación. El análisis temporal usa
+(timestamp normalizado a UTC, índice original), sin alterar el snapshot.
+La política completa de orden, estados analíticos y resultados está en
+[metrics-and-patterns.md](metrics-and-patterns.md).
+El contrato exterior HTTP se conserva en
+[integration-api.md](integration-api.md); no se usa el antiguo status:analyzed.
 
-En v1 proponemos únicamente `count`, `sum` y `avg`, con `scope` igual a `player` o `match`. Para `sum` y `avg`, `field` deberá señalar a un dato numérico del evento. En `player`, los eventos sin `playerId` no aportan valores. Las definiciones se cargan en **Scala**, no dentro de Go.
+## Verificación
 
-Un juego desconocido y sin configuración todavía podrá ingresar eventos. GameStats podrá ofrecer al menos conteos genéricos por tipo, pero **no** inventará estadísticas de dominio.
-
-### Nivel B: analizadores especializados en Scala
-
-Para reglas que combinen eventos y exijan interpretar su secuencia, implementaremos analizadores asociados a un `gameId`. Primera regla propuesta:
-
-**Eliminación tras daño**: el mismo atacante inflige `DAMAGE_DEALT` a un objetivo y luego lo elimina mediante `PLAYER_ELIMINATED` dentro de los siguientes 10 segundos de tiempo de evento. Debe correlacionar `playerId`, `data.targetId` y `timestamp`; no basta con contar eventos separados.
-
-Como otra estadística combinada, Scala podrá calcular, por jugador, la razón entre eliminaciones y daño infligido cuando el caso de uso lo justifique. Definiremos explícitamente cómo manejar divisiones por cero.
-
-## Secuencia y finalización
-
-- Go agrupa acontecimientos de una partida hasta `MATCH_FINISHED` y envía una **colección completa** a Scala.
-- Los timestamps pueden no coincidir con el orden de recepción: Scala deberá ordenar por `timestamp` antes de buscar patrones; si dos eventos tienen exactamente el mismo tiempo, necesitaremos una política de desempate determinista y no suponer causalidad.
-- Para la primera versión, el simulador garantizará que `MATCH_FINISHED` sea enviado **después** de que Go haya aceptado los demás eventos de esa partida, incluso cuando existan partidas distintas simultáneas.
-- Eventos nuevos después del cierre se rechazarán en v1. Soportar eventos tardíos, reintentos durables y reabrir partidas será una mejora posterior.
-
-## Resultados propuestos
-
-```json
-{
-  "gameId": "arena-combat",
-  "matchId": "match-001",
-  "status": "analyzed",
-  "metrics": [
-    {
-      "id": "damage_total",
-      "scope": "player",
-      "subjectId": "player-01",
-      "label": "Daño total",
-      "value": 35,
-      "unit": "HP"
-    }
-  ],
-  "patterns": [
-    {
-      "id": "damage_then_elimination",
-      "playerId": "player-01",
-      "count": 1
-    }
-  ]
-}
-```
-
-Esta salida es ilustrativa; los valores deberán corresponder a los eventos analizados realmente. Es una estructura genérica para que cualquier cliente consulte o presente métricas sin programar pantallas especiales para cada juego.
-
-## Criterios de aceptación del contrato (primera implementación)
-
-1. Go acepta un evento con `data` arbitrario si el sobre es válido.
-2. Go rechaza un sobre sin `eventId`, sin `gameId` o con `timestamp` mal formado.
-3. `MATCH_STARTED` es válido sin `playerId`.
-4. Dos partidas con el mismo `matchId`, pero diferente `gameId`, se mantienen separadas.
-5. Scala puede calcular `sum` y `count` configurados para combate.
-6. Scala identifica correctamente una secuencia daño → eliminación y descarta una secuencia que exceda los 10 segundos.
-7. El simulador prueba al menos dos juegos, múltiples partidas y eventos inválidos.
-
-## Decisiones pendientes
-
-- Definir si Go persistirá el estado entre reinicios; inicialmente será memoria temporal.
-- Formalizar la respuesta HTTP para eventos inválidos y conflictos.
-- Elegir la política final para tiempos iguales y llegadas tardías.
-- Fijar esquema/versionado y mecanismo de carga de configuración del motor Scala.
-- Confirmar con pruebas el contrato antes de declararlo estable.
+Los [fixtures](fixtures/analysis-v1/README.md) incluyen snapshots compatibles
+con este sobre. Separan validez de ingestión de validez del dominio: los
+casos numéricos inválidos deben seguir siendo aceptables por Go.
+La validación del dominio propuesta no está implementada en esta etapa.

@@ -279,7 +279,7 @@ y consultar todos los IDs cuesta tiempo y espacio proporcional a la partida.
 
 El estado es local a una instancia; varios procesos no comparten partidas.
 No hay persistencia durable, reintentos idempotentes ni recuperación tras fallos.
-Las consultas muestran solo estado de ingestión; no incluyen estadísticas.
+GET /matches muestra solo estado de ingestión; GET /results delega las estadísticas al servicio Scala, si está disponible.
 
 Se envían snapshots a Scala bajo demanda; los resultados analíticos no se almacenan.
 No se implementan bases de datos, Docker, CI/CD, interfaz gráfica ni despliegue.
@@ -290,7 +290,7 @@ el manejo de fallos/reintentos y las políticas de retención.
 
 Se implementa exclusivamente el mecanismo HTTP; **todavía requiere el módulo
 real desarrollado en Scala**. El [contrato de integración](../docs/integration-api.md)
-es una **propuesta pendiente de aprobación del equipo** y documenta los límites
+conserva el transporte existente y ahora define los elementos analíticos para implementar Scala; documenta los límites
 y la política exacta de errores.
 
 ```text
@@ -377,3 +377,7 @@ POST /analyze con HTTP 200 y el JSON de respuesta anterior, haciendo coincidir
 identificadores y state; iniciar Go con su URL base y usar los ejemplos de
 POST /events y GET /results. Confirmar el contrato y reemplazar el mock por
 Scala será responsabilidad conjunta del equipo.
+
+## Diseño analítico de Etapa 1
+
+El transporte Go existente no cambia. Los [perfiles componibles](../docs/analysis-templates.md) y los [fixtures](../docs/fixtures/analysis-v1/README.md) definen el futuro análisis de Gato, Snake y racing; no son funcionalidad Scala ya implementada. Ver [resultados provisionales y finales](../docs/metrics-and-patterns.md). Los ejemplos de combate anteriores siguen siendo ejemplos genéricos de ingestión, no analizadores del MVP.

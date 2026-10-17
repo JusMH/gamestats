@@ -1,0 +1,121 @@
+{
+  "gameId": "tic-tac-toe",
+  "matchId": "ttt-open",
+  "state": "open",
+  "metrics": [
+    {
+      "id": "board.result",
+      "label": "Resultado derivado del tablero",
+      "scope": "match",
+      "subjectId": "ttt-open",
+      "status": "provisional",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "value": {
+        "outcome": "in_progress",
+        "winnerId": null
+      },
+      "unit": "result"
+    },
+    {
+      "id": "duration.match",
+      "label": "Duración de partida",
+      "scope": "match",
+      "subjectId": "ttt-open",
+      "status": "unavailable",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "duration",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "value": null,
+      "unit": "seconds",
+      "reason": "awaiting_finish"
+    },
+    {
+      "id": "moves.match",
+      "label": "Movimientos de la partida",
+      "scope": "match",
+      "subjectId": "ttt-open",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "value": 3,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "alex",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "value": 2,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "bea",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "value": 1,
+      "unit": "events"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "board.winning_line",
+      "label": "Primera línea ganadora",
+      "scope": "match",
+      "subjectId": "ttt-open",
+      "status": "provisional",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 4,
+        "lastEventId": "m3"
+      },
+      "count": 0,
+      "occurrences": []
+    }
+  ]
+}

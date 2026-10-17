@@ -1,0 +1,55 @@
+{
+  "profileSchemaVersion": 1,
+  "profileVersion": "1.0.0",
+  "gameId": "tic-tac-toe",
+  "playersField": "/data/players",
+  "capabilities": [
+    {
+      "templateId": "event-metrics/v1",
+      "instanceId": "moves",
+      "availability": "live",
+      "metrics": [
+        {
+          "id": "moves.player",
+          "label": "Movimientos por jugador",
+          "eventType": "MOVE_PLACED",
+          "operation": "count",
+          "scope": "player",
+          "unit": "events"
+        },
+        {
+          "id": "moves.match",
+          "label": "Movimientos de la partida",
+          "eventType": "MOVE_PLACED",
+          "operation": "count",
+          "scope": "match",
+          "unit": "events"
+        }
+      ]
+    },
+    {
+      "templateId": "duration/v1",
+      "instanceId": "duration",
+      "availability": "final",
+      "parameters": {
+        "id": "duration.match",
+        "label": "Duración de partida",
+        "scope": "match",
+        "startEventType": "MATCH_STARTED",
+        "endEventType": "MATCH_FINISHED",
+        "unit": "seconds"
+      }
+    }
+  ],
+  "specializedAnalyzers": [
+    {
+      "analyzerId": "tic-tac-toe-line/v1",
+      "instanceId": "board",
+      "availability": "live",
+      "parameters": {
+        "resultMetricId": "board.result",
+        "patternId": "board.winning_line"
+      }
+    }
+  ]
+}

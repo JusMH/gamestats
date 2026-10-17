@@ -1,0 +1,263 @@
+{
+  "gameId": "snake",
+  "matchId": "snake-negative",
+  "state": "closed",
+  "metrics": [
+    {
+      "id": "apples.match",
+      "label": "Manzanas de la partida",
+      "scope": "match",
+      "subjectId": "snake-negative",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 3,
+      "unit": "events"
+    },
+    {
+      "id": "apples.player",
+      "label": "Manzanas por jugador",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 3,
+      "unit": "events"
+    },
+    {
+      "id": "apples.player",
+      "label": "Manzanas por jugador",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 0,
+      "unit": "events"
+    },
+    {
+      "id": "deaths.player",
+      "label": "Muertes por jugador",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 1,
+      "unit": "events"
+    },
+    {
+      "id": "deaths.player",
+      "label": "Muertes por jugador",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 0,
+      "unit": "events"
+    },
+    {
+      "id": "duration.match",
+      "label": "Duración de partida",
+      "scope": "match",
+      "subjectId": "snake-negative",
+      "status": "final",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "duration",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 16,
+      "unit": "seconds"
+    },
+    {
+      "id": "lifetime.player",
+      "label": "Tiempo hasta la muerte",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "lifetime",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 15,
+      "unit": "seconds"
+    },
+    {
+      "id": "lifetime.player",
+      "label": "Tiempo hasta la muerte",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "unavailable",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "lifetime",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": null,
+      "unit": "seconds",
+      "reason": "missing_end"
+    },
+    {
+      "id": "points.player",
+      "label": "Puntos por jugador",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 60,
+      "unit": "points"
+    },
+    {
+      "id": "points.player",
+      "label": "Puntos por jugador",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 0,
+      "unit": "points"
+    },
+    {
+      "id": "points_per_apple.player",
+      "label": "Puntos por manzana",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": 20,
+      "unit": "points/apple"
+    },
+    {
+      "id": "points_per_apple.player",
+      "label": "Puntos por manzana",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "unavailable",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "apples",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "value": null,
+      "unit": "points/apple",
+      "reason": "no_samples"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "apples.burst",
+      "label": "Tres manzanas en diez segundos",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "final",
+      "source": {
+        "templateId": "temporal-window/v1",
+        "instanceId": "burst",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "count": 0,
+      "occurrences": []
+    },
+    {
+      "id": "apples.burst",
+      "label": "Tres manzanas en diez segundos",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "final",
+      "source": {
+        "templateId": "temporal-window/v1",
+        "instanceId": "burst",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 6,
+        "lastEventId": "f"
+      },
+      "count": 0,
+      "occurrences": []
+    }
+  ]
+}

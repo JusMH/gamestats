@@ -1,0 +1,96 @@
+{
+  "fixtureSchemaVersion": 1,
+  "cases": [
+    {
+      "id": "ttt-win",
+      "request": "ttt-win.request.json",
+      "expected": "ttt-win.expected.json",
+      "profile": "../../examples/profiles/tic-tac-toe.json",
+      "derivation": "Alex coloca X en (0,0), (0,1), (0,2): 3 movimientos contra 2, total 5, duración 6 s; una línea ganadora."
+    },
+    {
+      "id": "ttt-draw",
+      "request": "ttt-draw.request.json",
+      "expected": "ttt-draw.expected.json",
+      "profile": "../../examples/profiles/tic-tac-toe.json",
+      "derivation": "9 celdas distintas, ninguna línea: empate; Alex 5, Bea 4, total 9, duración 10 s."
+    },
+    {
+      "id": "ttt-open",
+      "request": "ttt-open.request.json",
+      "expected": "ttt-open.expected.json",
+      "profile": "../../examples/profiles/tic-tac-toe.json",
+      "derivation": "Alex 2, Bea 1, total 3; tablero incompleto sin línea. Resultado provisional in_progress; duración unavailable/awaiting_finish."
+    },
+    {
+      "id": "snake-positive",
+      "request": "snake-positive.request.json",
+      "expected": "snake-positive.expected.json",
+      "profile": "../../examples/profiles/snake.json",
+      "derivation": "p1: 4 manzanas, 100 puntos, promedio 25, vida 15 s; p2: 1, 5, promedio 5, vida 18 s. Duración 20 s. Una terna [a1,a2,a3], límite inclusivo de 10 s; a4 no reutiliza esos eventos."
+    },
+    {
+      "id": "snake-negative",
+      "request": "snake-negative.request.json",
+      "expected": "snake-negative.expected.json",
+      "profile": "../../examples/profiles/snake.json",
+      "derivation": "p1: 3 manzanas, 60 puntos, promedio 20, vida 15 s. La terna abarca 11 s: cero patrones. p2: conteos/suma 0; promedio sin muestras y vida sin muerte unavailable. Duración 16 s."
+    },
+    {
+      "id": "snake-invalid-number",
+      "request": "snake-invalid-number.request.json",
+      "expected": "snake-invalid-number.expected.json",
+      "profile": "../../examples/profiles/snake.json",
+      "derivation": "Go acepta el sobre. p1 tiene 2 APPLE_EATEN; suma y promedio invalid/invalid_number, sin ignorar a1. Duración 5 s y vida 4 s válidas. No hay terna."
+    },
+    {
+      "id": "race-start",
+      "request": "race-start.request.json",
+      "expected": "race-start.expected.json",
+      "profile": "../../examples/profiles/racing.json",
+      "derivation": "p1/p2: vueltas y suma 0; promedio unavailable/no_samples. Duración unavailable/awaiting_finish."
+    },
+    {
+      "id": "race-live-2",
+      "request": "race-live-2.request.json",
+      "expected": "race-live-2.expected.json",
+      "profile": "../../examples/profiles/racing.json",
+      "derivation": "p1: 2 vueltas, suma 22000 ms, media 11000 ms; p2: 0 vueltas. Duración aún unavailable. Dos plantillas coexisten."
+    },
+    {
+      "id": "race-live-3",
+      "request": "race-live-3.request.json",
+      "expected": "race-live-3.expected.json",
+      "profile": "../../examples/profiles/racing.json",
+      "derivation": "p1: 3 vueltas, suma 30000 ms, media 10000 ms; p2 sin muestras. La consulta repetida no acumula las 2 vueltas de la respuesta anterior."
+    },
+    {
+      "id": "race-final",
+      "request": "race-final.request.json",
+      "expected": "race-final.expected.json",
+      "profile": "../../examples/profiles/racing.json",
+      "derivation": "Mismos 3 giros y 30000 ms que en vivo, ahora final; duración de partida 32 s, diferente de sumar vueltas. p2 sin muestras."
+    },
+    {
+      "id": "unknown-game",
+      "request": "unknown-game.request.json",
+      "expected": "unknown-game.expected.json",
+      "profile": null,
+      "derivation": "Sin perfil: metrics y patterns vacíos, HTTP 200 propuesto; Go sigue admitiendo data arbitrario. No se inventan métricas."
+    },
+    {
+      "id": "snake-tied",
+      "request": "snake-tied.request.json",
+      "expected": "snake-tied.expected.json",
+      "profile": "../../examples/profiles/snake.json",
+      "derivation": "Tres eventos distintos a la misma hora forman una única terna [a3,a1,a2], en orden de aceptación, no por eventId. p1: 3 manzanas, 6 puntos, media 2; vida 4 s y duración 5 s."
+    },
+    {
+      "id": "snake-missing-points",
+      "request": "snake-missing-points.request.json",
+      "expected": "snake-missing-points.expected.json",
+      "profile": "../../examples/profiles/snake.json",
+      "derivation": "Go acepta data {}. Conteos permanecen válidos; suma y promedio de p1 invalid/missing_field. No se sustituye el valor ausente por cero."
+    }
+  ]
+}

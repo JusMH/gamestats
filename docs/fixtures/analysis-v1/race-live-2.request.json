@@ -1,0 +1,47 @@
+{
+  "gameId": "racing",
+  "matchId": "race-live",
+  "state": "open",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "racing",
+      "matchId": "race-live",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "p1",
+          "p2"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "l1",
+      "timestamp": "2026-10-17T18:00:10Z",
+      "gameId": "racing",
+      "matchId": "race-live",
+      "playerId": "p1",
+      "type": "LAP_COMPLETED",
+      "data": {
+        "lap": 1,
+        "durationMs": 10000
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "l2",
+      "timestamp": "2026-10-17T18:00:22Z",
+      "gameId": "racing",
+      "matchId": "race-live",
+      "playerId": "p1",
+      "type": "LAP_COMPLETED",
+      "data": {
+        "lap": 2,
+        "durationMs": 12000
+      }
+    }
+  ]
+}

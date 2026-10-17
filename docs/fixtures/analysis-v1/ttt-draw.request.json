@@ -1,0 +1,169 @@
+{
+  "gameId": "tic-tac-toe",
+  "matchId": "ttt-draw",
+  "state": "closed",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "alex",
+          "bea"
+        ],
+        "symbols": {
+          "alex": "X",
+          "bea": "O"
+        }
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m1",
+      "timestamp": "2026-10-17T18:00:01Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 1,
+        "row": 0,
+        "column": 0,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m2",
+      "timestamp": "2026-10-17T18:00:02Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 2,
+        "row": 0,
+        "column": 1,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m3",
+      "timestamp": "2026-10-17T18:00:03Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 3,
+        "row": 0,
+        "column": 2,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m4",
+      "timestamp": "2026-10-17T18:00:04Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 4,
+        "row": 1,
+        "column": 1,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m5",
+      "timestamp": "2026-10-17T18:00:05Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 5,
+        "row": 1,
+        "column": 0,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m6",
+      "timestamp": "2026-10-17T18:00:06Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 6,
+        "row": 1,
+        "column": 2,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m7",
+      "timestamp": "2026-10-17T18:00:07Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 7,
+        "row": 2,
+        "column": 1,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m8",
+      "timestamp": "2026-10-17T18:00:08Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "bea",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 8,
+        "row": 2,
+        "column": 0,
+        "symbol": "O"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "m9",
+      "timestamp": "2026-10-17T18:00:09Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "playerId": "alex",
+      "type": "MOVE_PLACED",
+      "data": {
+        "turn": 9,
+        "row": 2,
+        "column": 2,
+        "symbol": "X"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "f",
+      "timestamp": "2026-10-17T18:00:10Z",
+      "gameId": "tic-tac-toe",
+      "matchId": "ttt-draw",
+      "type": "MATCH_FINISHED",
+      "data": {}
+    }
+  ]
+}

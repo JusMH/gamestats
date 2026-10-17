@@ -1,0 +1,114 @@
+{
+  "gameId": "snake",
+  "matchId": "snake-positive",
+  "state": "closed",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "p1",
+          "p2"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a1",
+      "timestamp": "2026-10-17T18:00:01Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 10
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a2",
+      "timestamp": "2026-10-17T18:00:05Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 20
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "b1",
+      "timestamp": "2026-10-17T18:00:04Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p2",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 5
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a3",
+      "timestamp": "2026-10-17T18:00:11Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 30
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "a4",
+      "timestamp": "2026-10-17T18:00:12Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p1",
+      "type": "APPLE_EATEN",
+      "data": {
+        "points": 40
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "d1",
+      "timestamp": "2026-10-17T18:00:15Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p1",
+      "type": "PLAYER_DIED",
+      "data": {
+        "cause": "wall"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "d2",
+      "timestamp": "2026-10-17T18:00:18Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "playerId": "p2",
+      "type": "PLAYER_DIED",
+      "data": {
+        "cause": "wall"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "f",
+      "timestamp": "2026-10-17T18:00:20Z",
+      "gameId": "snake",
+      "matchId": "snake-positive",
+      "type": "MATCH_FINISHED",
+      "data": {}
+    }
+  ]
+}

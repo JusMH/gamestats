@@ -1,107 +1,155 @@
-# Integración HTTP Go → Scala — propuesta pendiente de aprobación
+# Contrato HTTP Go → Scala y análisis bajo demanda
 
-**Estado: propuesta inicial para revisión conjunta del equipo.** Esta
-implementación proporciona únicamente el mecanismo de integración; requiere
-el servicio real que desarrolla el integrante responsable de Scala.
-No declara estable el contrato ni define métricas o patrones.
+El transporte exterior descrito ya existe en Go. Los elementos interiores
+de métricas/patrones quedan definidos por este diseño para implementar Scala;
+no se declara que el servicio analítico real esté disponible.
+No cambia ninguna ruta, nombre exterior, estado ni código del puente Go.
 
-## Petición a Scala
+## Petición
 
-`POST /analyze`, `Content-Type: application/json`, `Accept: application/json`.
+POST /analyze, Content-Type: application/json, Accept: application/json.
 
 ```json
 {
-  "gameId": "snake",
-  "matchId": "match-001",
+  "gameId": "racing",
+  "matchId": "race-live",
   "state": "open",
-  "events": []
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "racing",
+      "matchId": "race-live",
+      "type": "MATCH_STARTED",
+      "data": {"players":["p1","p2"]}
+    }
+  ]
 }
 ```
 
-`state` es `open` o `closed`. `events` contiene **todos los eventos aceptados
-hasta el instante del snapshot**, en orden de aceptación, incluidos
-`MATCH_STARTED` y, si corresponde, `MATCH_FINISHED`. El arreglo vacío ilustra
-la estructura: una partida existente contiene al menos su inicio.
-Cada evento conserva los campos del [sobre v1](events.md) y el JSON original
-de `data`, incluidos números grandes y objetos anidados. Go utiliza los
-campos conocidos del sobre; las extensiones desconocidas del sobre ya se
-ignoraban al validar en la implementación 2. Los campos opcionales vacíos
-se omiten al serializar. No se promete igualdad textual de espacios o escapes
-JSON en el transporte; sí se conserva el contenido de `data` sin convertir
-números a float64 ni interpretar su semántica.
+Los cuatro campos son obligatorios. state es open o closed. events contiene
+el snapshot completo en orden de aceptación, al menos MATCH_STARTED.
+El futuro Scala validará sobre v1, IDs únicos, coincidencia de gameId/matchId,
+inicio único primero, ausencia de cierre si open y cierre único último si
+closed. No debe aceptar una mezcla de partidas ni un arreglo vacío como
+partida real. Las peticiones estructuralmente incoherentes reciben HTTP 400
+en Scala; Go actual lo transforma en 502.
 
-## Respuesta de Scala
+Go conserva campos conocidos del sobre y el contenido de data sin convertir
+números a float64. No conserva campos desconocidos del sobre ni igualdad
+textual de espacios/escapes. Opcionales vacíos se omiten.
+La validación propia de los juegos solo corresponde a Scala.
 
-HTTP **200**, cuerpo JSON único:
+## Respuesta exterior existente
+
+HTTP 200 con un solo objeto JSON:
 
 ```json
 {
-  "gameId": "snake",
-  "matchId": "match-001",
+  "gameId": "racing",
+  "matchId": "race-live",
   "state": "open",
   "metrics": [],
   "patterns": []
 }
 ```
 
-Los identificadores y `state` deben coincidir exactamente con el snapshot
-enviado, aunque lleguen eventos o se cierre la partida durante el análisis.
-`metrics` y `patterns` son arreglos obligatorios (no null); Scala definirá sus
-elementos. Go conserva su JSON sin calcular estadísticas. Se admiten campos
-adicionales en la respuesta, pero solo se devuelven estos cinco campos.
-El cliente rechaza JSON mal formado, contenido adicional, tipos incorrectos,
-campos requeridos ausentes y respuestas mayores de **8 MiB**. No exige una
-cabecera Content-Type en la respuesta; valida el cuerpo como JSON.
+El ejemplo ilustra el exterior; un perfil conocido producirá los elementos
+especificados en [metrics-and-patterns.md](metrics-and-patterns.md).
+metrics y patterns son arrays obligatorios, nunca null.
+gameId, matchId y state deben coincidir exactamente con el snapshot enviado,
+aunque la partida cambie mientras se calcula.
 
-## Consulta pública en Go
+Go valida esos campos exteriores y transmite los elementos interiores como
+JSON opaco. No verifica todavía sus estados, IDs, cantidades ni procedencia.
+Scala deberá comprobar el contrato interior antes de responder.
+Los campos exteriores adicionales se aceptan pero Go los descarta:
+por eso status, source, basis y reason se ubican dentro de cada resultado,
+sin depender de metadata exterior nueva.
 
-`GET /results/{gameId}/{matchId}` toma un snapshot y llama a Scala en cada
-consulta. Funciona con partidas abiertas y cerradas. No hay caché ni envío
-automático al cerrar la partida. El resumen `GET /matches/...` se conserva.
+Go rechaza JSON mal formado, contenido adicional, tipos exteriores incorrectos,
+IDs/estado distintos y respuestas mayores de 8 MiB.
+No exige Content-Type de respuesta; sí valida el cuerpo JSON.
 
-| Situación | Código Go | Cuerpo JSON |
+## Análisis en vivo y final
+
+GET /results/{gameId}/{matchId} obtiene un snapshot y llama a Scala en
+cada consulta. Funciona con open y closed. No dispara cierre, no bloquea
+mutexes durante la red, no guarda resultados y no mantiene caché.
+
+El cálculo futuro será una función del snapshot y del perfil activo, sin
+acumular resultados de consultas anteriores. availability determina qué
+salidas son útiles en vivo y cuáles esperan el cierre. Los resultados
+individuales diferencian provisional, final, unavailable e invalid.
+Un snapshot closed no implica que toda métrica tenga datos suficientes.
+
+Flujo de integración de un productor:
+1. POST MATCH_STARTED y esperar accepted.
+2. POST acontecimientos y esperar sus aceptaciones.
+3. GET /results tras un acontecimiento relevante o mediante polling.
+4. Continuar enviando eventos mientras open.
+5. POST MATCH_FINISHED tras todos los demás eventos; consultar de nuevo.
+
+Go no envía automáticamente al cerrar. Sin GET no hay actualización enviada
+al cliente. No existen notificaciones push, SSE ni WebSockets; son opcionales
+posteriores. No se prescribe un intervalo de polling sin medir capacidad.
+
+## Juegos y errores de dominio
+
+Un gameId sin perfil devuelve desde el futuro Scala HTTP 200, los mismos
+identificadores/state y arrays vacíos. No se inventan estadísticas ni se
+rechaza la ingestión de un juego desconocido.
+El protocolo actual no distingue públicamente "perfil ausente" de "perfil
+sin resultados": esto es deliberado para conservar el exterior.
+Una mejora de diagnóstico requeriría acordar una extensión del protocolo.
+
+Un perfil conocido con una muestra numérica errónea devuelve HTTP 200
+y las salidas afectadas invalid, junto con las independientes válidas.
+Un roster declarado inválido impide identificar sujetos: Scala devolverá
+400 para ese snapshot, no filas con IDs inventados.
+Configuraciones inválidas impiden arrancar Scala. Fallos internos no se
+convierten en métricas vacías: Scala devuelve 500.
+
+## Códigos públicos actuales de GET /results
+
+| Situación | Código Go | Cuerpo |
 | --- | --- | --- |
-| Análisis correcto | 200 | Respuesta analítica validada |
-| Partida inexistente, aun sin configurar Scala | 404 | `{"error":"match not found"}` |
-| Falta SCALA_SERVICE_URL | 503 | `{"error":"analysis service is not configured"}` |
-| Error de conexión, HTTP distinto de 200 (incluidos 3xx y errores de Scala), JSON o estructura inválidos | 502 | `{"error":"analysis service failed"}` |
-| Timeout del cliente o deadline de la solicitud | 504 | `{"error":"analysis service timed out"}` |
-| Método diferente de GET, incluido HEAD | 405 | JSON de error y `Allow: GET` |
+| Análisis con exterior válido | 200 | gameId, matchId, state, metrics, patterns |
+| Partida inexistente, incluso sin Scala configurado | 404 | {"error":"match not found"} |
+| Falta SCALA_SERVICE_URL | 503 | {"error":"analysis service is not configured"} |
+| Fallo de conexión, HTTP de Scala distinto de 200, redirección, JSON/exterior inválido o respuesta demasiado grande | 502 | {"error":"analysis service failed"} |
+| Timeout o deadline | 504 | {"error":"analysis service timed out"} |
+| Método distinto de GET, incluido HEAD | 405 | Error JSON y Allow: GET |
 
-No se transmiten direcciones internas, cuerpos de error ni excepciones de
-Scala al consumidor. Si el consumidor se desconecta, su contexto cancela la
-solicitud saliente y Go no intenta escribir una respuesta. No se fabrican
-estadísticas cuando falla Scala. Las rutas incompletas conservan el 404
-estándar del router.
+Los errores específicos HTTP 400/422/500 que pudiera emitir Scala no se
+propagan como esos códigos al consumidor: todos son 502 en Go actual.
+No se modifica esa política en esta etapa. No se exponen mensajes internos,
+direcciones ni stack traces del servicio Scala.
+Si el cliente se desconecta, su contexto cancela la llamada saliente y Go
+no intenta escribir una respuesta. HEAD no transporta cuerpo por la red.
+Rutas incompletas conservan el 404 estándar del router.
+GET /health, POST /events y GET /matches mantienen sus contratos.
 
-## Configuración y límites
+## Configuración y límites existentes
 
-`SCALA_SERVICE_URL` es la URL **base**, por ejemplo `http://localhost:9000`.
-Go agrega `/analyze`; admite un prefijo de ruta. Debe ser una URL absoluta
-HTTP(S), sin credenciales, query ni fragmento. Una URL configurada inválida
-impide iniciar el servidor con un mensaje genérico. Sin variable, los demás
-endpoints siguen disponibles.
+SCALA_SERVICE_URL es URL base absoluta HTTP(S), p. ej. http://localhost:9000.
+Go agrega /analyze y admite un prefijo de ruta. No admite credenciales,
+query ni fragmento; una URL inválida impide arrancar.
+Sin variable, los otros endpoints siguen funcionando.
 
-El cliente reutilizable es seguro para consultas concurrentes y usa un timeout
-total de **5 segundos**, incluyendo lectura de respuesta. La cancelación del
-GET se propaga mediante `NewRequestWithContext`. No sigue redirecciones ni
-hace reintentos automáticos. Los límites de servidor Go existentes se conservan.
+El cliente reutilizable admite concurrencia, timeout total de 5 segundos
+incluyendo lectura, cancelación del contexto, sin redirecciones y sin
+reintentos automáticos. El futuro Scala debe respetar ese presupuesto.
+Cada snapshot copia todos los eventos y bytes de data bajo RLock y luego
+libera los bloqueos; costo proporcional al tamaño de la partida.
+No hay límite de eventos acumulados ni persistencia.
 
-Cada consulta copia todos los eventos bajo el RLock de la partida, incluidos
-los bytes de data. Luego libera todos los bloqueos antes de serializar o usar
-la red. La copia tiene costo proporcional al tamaño acumulado y puede retrasar
-brevemente escrituras de la misma partida. Dos consultas abiertas pueden
-representar instantes distintos; los resultados no se guardan. Los eventos
-siguen solo en memoria y se pierden al reiniciar. No se agregan autenticación,
-persistencia, paginación, mensajería, Docker, CI/CD ni analizadores.
+## Verificación de contrato pendiente
 
-## Coordinación pendiente con Scala
-
-- Aprobar endpoint, nombres, estados y estructura propuesta; esta salida usa
-  `state`, mientras el ejemplo histórico de events.md usaba `status`.
-- Definir elementos y semántica de metrics/patterns, y comportamiento para
-  partidas abiertas o juegos desconocidos (sin resultados ficticios).
-- Acordar orden por timestamp, desempates y tratamiento de secuencias parciales.
-- Confirmar límites de tamaño, tiempo de análisis y política de errores.
-- Ejecutar pruebas de contrato contra el módulo Scala real antes de declarar
-  la integración completa.
+El [catálogo de fixtures](fixtures/analysis-v1/README.md) incluye requests y
+respuestas esperadas abiertas/cerradas. El verificador local comprueba
+ejemplos y derivaciones; no sustituye pruebas contra Scala real.
+Las pruebas Go existentes usan mocks de HTTP, no un motor Scala.
+La implementación próxima deberá ejecutar esos mismos pares contra
+POST /analyze y GET /results, incluyendo consultas repetidas y simultáneas.

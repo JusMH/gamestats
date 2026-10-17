@@ -1,0 +1,147 @@
+{
+  "gameId": "tic-tac-toe",
+  "matchId": "ttt-win",
+  "state": "closed",
+  "metrics": [
+    {
+      "id": "board.result",
+      "label": "Resultado derivado del tablero",
+      "scope": "match",
+      "subjectId": "ttt-win",
+      "status": "final",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "value": {
+        "outcome": "win",
+        "winnerId": "alex"
+      },
+      "unit": "result"
+    },
+    {
+      "id": "duration.match",
+      "label": "Duración de partida",
+      "scope": "match",
+      "subjectId": "ttt-win",
+      "status": "final",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "duration",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "value": 6,
+      "unit": "seconds"
+    },
+    {
+      "id": "moves.match",
+      "label": "Movimientos de la partida",
+      "scope": "match",
+      "subjectId": "ttt-win",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "value": 5,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "alex",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "value": 3,
+      "unit": "events"
+    },
+    {
+      "id": "moves.player",
+      "label": "Movimientos por jugador",
+      "scope": "player",
+      "subjectId": "bea",
+      "status": "final",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "moves",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "value": 2,
+      "unit": "events"
+    }
+  ],
+  "patterns": [
+    {
+      "id": "board.winning_line",
+      "label": "Primera línea ganadora",
+      "scope": "match",
+      "subjectId": "ttt-win",
+      "status": "final",
+      "source": {
+        "analyzerId": "tic-tac-toe-line/v1",
+        "instanceId": "board",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 7,
+        "lastEventId": "f"
+      },
+      "count": 1,
+      "occurrences": [
+        {
+          "eventIds": [
+            "m1",
+            "m3",
+            "m5"
+          ],
+          "startTimestamp": "2026-10-17T18:00:01Z",
+          "endTimestamp": "2026-10-17T18:00:05Z",
+          "details": {
+            "winnerId": "alex",
+            "cells": [
+              {
+                "row": 0,
+                "column": 0
+              },
+              {
+                "row": 0,
+                "column": 1
+              },
+              {
+                "row": 0,
+                "column": 2
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "profileSchemaVersion": 1,
+  "profileVersion": "1.0.0",
+  "gameId": "snake",
+  "playersField": "/data/players",
+  "capabilities": [
+    {
+      "templateId": "event-metrics/v1",
+      "instanceId": "apples",
+      "availability": "live",
+      "metrics": [
+        {
+          "id": "apples.player",
+          "label": "Manzanas por jugador",
+          "eventType": "APPLE_EATEN",
+          "operation": "count",
+          "scope": "player",
+          "unit": "events"
+        },
+        {
+          "id": "apples.match",
+          "label": "Manzanas de la partida",
+          "eventType": "APPLE_EATEN",
+          "operation": "count",
+          "scope": "match",
+          "unit": "events"
+        },
+        {
+          "id": "points.player",
+          "label": "Puntos por jugador",
+          "eventType": "APPLE_EATEN",
+          "operation": "sum",
+          "scope": "player",
+          "unit": "points",
+          "field": "/data/points",
+          "numberKind": "integer",
+          "minimum": 0
+        },
+        {
+          "id": "points_per_apple.player",
+          "label": "Puntos por manzana",
+          "eventType": "APPLE_EATEN",
+          "operation": "avg",
+          "scope": "player",
+          "unit": "points/apple",
+          "field": "/data/points",
+          "numberKind": "integer",
+          "minimum": 0
+        },
+        {
+          "id": "deaths.player",
+          "label": "Muertes por jugador",
+          "eventType": "PLAYER_DIED",
+          "operation": "count",
+          "scope": "player",
+          "unit": "events"
+        }
+      ]
+    },
+    {
+      "templateId": "duration/v1",
+      "instanceId": "duration",
+      "availability": "final",
+      "parameters": {
+        "id": "duration.match",
+        "label": "Duración de partida",
+        "scope": "match",
+        "startEventType": "MATCH_STARTED",
+        "endEventType": "MATCH_FINISHED",
+        "unit": "seconds"
+      }
+    },
+    {
+      "templateId": "duration/v1",
+      "instanceId": "lifetime",
+      "availability": "live",
+      "parameters": {
+        "id": "lifetime.player",
+        "label": "Tiempo hasta la muerte",
+        "scope": "player",
+        "startEventType": "MATCH_STARTED",
+        "endEventType": "PLAYER_DIED",
+        "unit": "seconds"
+      }
+    },
+    {
+      "templateId": "temporal-window/v1",
+      "instanceId": "burst",
+      "availability": "live",
+      "parameters": {
+        "id": "apples.burst",
+        "label": "Tres manzanas en diez segundos",
+        "eventType": "APPLE_EATEN",
+        "scope": "player",
+        "size": 3,
+        "windowSeconds": 10,
+        "overlap": "consume"
+      }
+    }
+  ],
+  "specializedAnalyzers": []
+}

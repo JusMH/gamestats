@@ -1,95 +1,125 @@
-# Arquitectura híbrida — GameStats (propuesta v1)
+# Arquitectura genérica de GameStats — diseño de Etapa 1
 
-## Objetivo
+Decisión de diseño para implementar; no representa un motor Scala existente.
+Go ya implementa ingestión, estado concurrente, snapshots y cliente HTTP.
+Scala real, simulador, Docker, CI/CD y deployment siguen pendientes.
 
-Recibir eventos de múltiples juegos con un núcleo reutilizable; calcular métricas sencillas mediante configuración y patrones complejos mediante analizadores especializados, **respetando las responsabilidades obligatorias de Go y Scala**.
-
-## Flujo de datos
+## Flujo real y objetivo
 
 ```text
-Simulador / productor externo
-         |
-         | HTTP POST /events (JSON)
-         v
-Go: ingestión y orquestación
-  - valida sobre común
-  - detecta duplicados por partida
-  - agrupa por (gameId, matchId)
-  - mantiene estado temporal
-  - atiende partidas concurrentes con goroutines/channels
-         |
-         | HTTP POST /analyze (snapshot bajo demanda, abierta o cerrada)
-         v
-Scala: análisis funcional
-  - recibe y transforma colecciones
-  - aplica configuraciones declarativas (count, sum, avg)
-  - utiliza analizadores especializados para patrones
-  - devuelve métricas y hallazgos estructurados
-         |
-         | JSON
-         v
-Go: valida y devuelve el resultado sin caché
-         |
-         | GET /results/{gameId}/{matchId}
-         v
-Cliente / Postman
+Productor externo o futuro simulador
+  -- POST /events --> Go (sobre v1, duplicados, ciclo de vida, memoria)
+  <-- accepted/rejected
+
+Cliente o videojuego
+  -- GET /matches/{gameId}/{matchId} --> resumen de ingestión
+  -- GET /results/{gameId}/{matchId} --> Go copia snapshot open/closed
+                                       |
+                                       +-- POST /analyze --> futuro Scala
+                                       |                    perfil + capacidades
+                                       |                    + analizador opcional
+                                       <-- métricas/patrones
+  <-- respuesta del snapshot solicitado (sin caché)
 ```
 
-Las rutas HTTP son **propuestas de diseño**, no rutas requeridas literalmente por el enunciado. Go y Scala corren como servicios independientes; no acoplamos tipos específicos de juegos al módulo Go.
+El productor detecta acontecimientos: por ejemplo, que terminó una vuelta.
+GameStats analiza esos eventos; no ejecuta Snake, Gato ni una consola.
+Cerrar una partida NO dispara una llamada a Scala.
+El cliente puede consultar tras un evento relevante o mediante polling.
+Sin una nueva solicitud no hay actualización automática, WebSockets ni SSE.
 
-## Contrato de eventos
+## Tres niveles
 
-Ver [events.md](events.md). El sobre incluye `schemaVersion`, `eventId`, `timestamp`, `gameId`, `matchId`, `type` y `data`; `playerId` y `gameVersion` son opcionales. `data` puede contener objetos JSON diferentes para cada juego.
-
-## Responsabilidades
-
-| Componente | Hace | No hace |
+| Nivel | Responsabilidad | Extender |
 | --- | --- | --- |
-| Simulador | Genera eventos variados, juegos y partidas en paralelo | No implementa videojuegos completos |
-| Go | Recibe, valida sobre, mantiene estado, coordina concurrencia y comunicación | No calcula estadísticas del dominio |
-| Scala | Valida semántica analítica, transforma colecciones, calcula estadísticas y detecta patrones | No coordina la ingestión externa |
-| Configuraciones | Definen métricas simples por juego sin recompilar el motor | No ejecutan expresiones de código arbitrario |
-| Analizadores Scala | Implementan reglas específicas de secuencias/correlaciones | No obligan a cambiar el núcleo genérico de Go |
+| A: núcleo genérico | Go coordina eventos; Scala recibe snapshots y compone resultados sin identificar juegos mediante if/switch. | Nuevo gameId no cambia Go. |
+| B: capacidades reutilizables | event-metrics/v1, duration/v1, temporal-window/v1 seleccionadas y parametrizadas por perfiles declarativos. | Nuevas métricas count/sum/avg: solo configuración. |
+| C: especialización | Funciones registradas por ID, p. ej. tic-tac-toe-line/v1. | Agregar una implementación y registrarla; no cambiar el ejecutor común. |
 
-## Enfoque híbrido de análisis
+Cada perfil selecciona múltiples capacidades. Racing combina métricas de
+vueltas con duración; Snake combina métricas, duración y ventana temporal.
+Gato combina movimientos, duración y analizador de tablero.
+Ninguna plantilla implica que su juego asociado sea el único compatible.
 
-1. **Métricas declarativas**: un JSON por juego, cargado por Scala, establece `count`, `sum` o `avg` sobre eventos seleccionados. La implementación del motor será funcional, con operaciones como `filter`, `map`, `groupBy` y `fold`.
-2. **Analizadores especializados**: Scala registra lógica programada para condiciones más expresivas, por ejemplo daño seguido de eliminación al mismo objetivo dentro de una ventana temporal.
-3. **Juegos desconocidos**: Go admite eventos cuyo sobre sea válido, incluso sin configuración de Scala. No inferimos métricas específicas sin semántica definida. Como respaldo, Scala podrá devolver conteos genéricos por tipo de evento.
+## Responsabilidades y límites
 
-## Concurrencia y límites de la v1
+Go conserva los eventos en memoria por clave estructurada (gameId, matchId).
+Un RWMutex protege el registro y otro cada partida. GetEvents copia estado,
+eventos y bytes de data bajo el bloqueo de lectura; libera los bloqueos
+antes de serializar o usar la red. Las llamadas a Scala no bloquean la
+ingestión mientras esperan respuesta.
 
-- Go debe procesar partidas independientes en paralelo. Diseñaremos un administrador de partidas con estado protegido (por mutex o propietarios exclusivos mediante channels), evitando condiciones de carrera.
-- Inicialmente Go mantiene eventos y resultados en memoria; no prometemos persistencia ante reinicio.
-- El simulador enviará los eventos de cada partida antes de su `MATCH_FINISHED`. Entre partidas distintas, las llegadas pueden intercalarse.
-- Go finaliza el lote por partida y lo envía a Scala; Scala puede ordenar timestamps para las reglas de secuencia.
-- Al principio, reintentos HTTP, tolerancia a fallos y datos tardíos se resolverán con una política sencilla documentada, sin inventar garantías de entrega exactamente una vez.
+Scala validará el snapshot, resolverá el perfil, ejecutará funciones puras
+sobre colecciones inmutables y compondrá métricas y patrones. No agregará
+eventos, no decidirá si Go acepta una solicitud ni almacenará estadísticas
+acumuladas entre GET. La validez analítica no equivale a aceptación en Go.
 
-## Estrategia de implementación incremental
+Cada consulta recalcula el snapshot completo. Repetir una consulta con
+idénticos eventos, orden y perfil produce el mismo JSON semántico. Al entrar
+nuevos eventos cambian los resultados provisionales. El cierre fija los
+eventos, pero solo la misma versión del perfil garantiza reproducibilidad.
+El diseño no ofrece procesamiento incremental ni resultados globales entre
+partidas. "Multijuego" significa perfiles distintos en el mismo servicio,
+con respuestas por una sola partida.
 
-1. Congelar la primera propuesta del contrato mediante revisión y casos de prueba.
-2. Crear servicio Go mínimo: `POST /events`, validación del sobre y un endpoint de salud.
-3. Incorporar estado por partida, duplicados y concurrencia en Go.
-4. Crear servicio Scala: `POST /analyze` con una métrica `count` y una `sum` configurables.
-5. Incorporar regla de secuencia en Scala y datos de prueba de combate.
-6. Extender la simulación a carreras para comprobar que no necesitamos alterar Go.
-7. Añadir consulta de resultados, manejo de errores, pruebas integradas, Docker Compose, CI/CD y deployment.
+## Diseño funcional futuro de Scala
 
-## Aspectos del enunciado que cubriremos
+| Paquete conceptual | Función |
+| --- | --- |
+| model | Evento genérico, Snapshot, Profile, Metric, Pattern; JSON de data preservado. |
+| validation | Sobre/snapshot y errores de datos consumidos por una capacidad. |
+| profiles | Cargar y validar perfiles locales versionados al arrancar. |
+| templates | Registro inmutable ID → capacidad tipada y validación de sus parámetros. |
+| metrics | count/sum/avg con números decimales, sin float binario como fuente de verdad. |
+| analyzers | Registro inmutable de funciones especializadas; tablero de Gato. |
+| composition | Expandir perfiles, detectar IDs repetidos y ordenar resultados. |
+| http | POST /analyze; serialización, límites y manejo de errores. |
 
-- Go: flujo, validación, estado y concurrencia.
-- Scala: análisis funcional, métricas por jugador y partida y patrones de varios eventos.
-- Múltiples juegos, partidas y escenarios simulados.
-- Servicios independientes comunicados por HTTP/JSON.
-- Docker, integración reproducible, CI/CD y deployment documentado.
+No se impone framework ni biblioteca de JSON/HTTP en esta etapa.
+La implementación Scala decidirá dependencias mínimas al preparar su módulo.
 
-**Nota:** Este documento representa una propuesta técnica del equipo; no sustituye al enunciado original y podrá evolucionar tras las primeras pruebas.
+filter selecciona eventos por tipo; groupBy agrupa jugadores; map transforma
+campos validados; fold calcula acumuladores y reconstruye el tablero;
+flatMap reúne salidas de las capacidades; collect extrae casos tipados
+después de validar. collect no debe descartar números inválidos
+silenciosamente. avg se calcula con suma y cantidad de muestras.
+Los errores se representan como valores (Either/Validation conceptual),
+sin excepciones como flujo normal. No hace falta un framework de plugins.
 
-## Integración disponible en la implementación 3
+El ejecutor resuelve IDs del perfil en registros; no utiliza condicionales
+por gameId. Una nueva especialización requiere compilar Scala, pero no
+reescribir el núcleo. No se carga código desde perfiles.
 
-GET /results obtiene un snapshot completo y llama a Scala sin mantener mutexes
-bloqueados durante la red. No hay envío automático al cerrar, caché ni push.
-Las referencias anteriores al envío al cierre y a guardar resultados describen
-el diseño inicial, no el comportamiento de esta etapa. Consultar la
-[propuesta de integración](integration-api.md), pendiente de aprobación conjunta.
-El módulo Scala real sigue siendo necesario; Go no calcula estadísticas.
+## Agregar un juego y componer capacidades
+
+1. Definir sus eventos data, unidades y productor con el sobre v1.
+2. Añadir un perfil local con gameId y versión; usar tantas instancias
+   de capacidades como necesite.
+3. Asegurar IDs únicos en métricas y patrones y declarar inputs precisos.
+4. Si una regla no cabe en las capacidades MVP, decidir si es necesaria:
+   registrar un analizador especializado o aplazarla.
+5. Añadir snapshot, salida esperada y casos abiertos/cerrados.
+6. Validar perfiles antes de iniciar Scala y ejecutar pruebas de contrato.
+
+El [perfil racing](examples/profiles/racing.json) usa solo capacidades
+reutilizables: ninguna lógica de carreras debe añadirse al núcleo.
+Para una nueva suma, se agrega otra definición a event-metrics/v1, no código.
+
+## Documentos normativos
+
+- [events.md](events.md): sobre y ciclo de vida Go.
+- [integration-api.md](integration-api.md): transporte HTTP existente.
+- [analysis-templates.md](analysis-templates.md): perfiles y capacidades.
+- [games.md](games.md): datos de demostración.
+- [metrics-and-patterns.md](metrics-and-patterns.md): resultados, tiempo y reglas.
+- [fixtures](fixtures/analysis-v1/README.md): casos y derivaciones comprobables.
+- [implementation-roadmap.md](implementation-roadmap.md): MVP y siguiente tarea.
+
+## Riesgos
+
+Memoria y copias crecen con eventos acumulados; no hay retención ni partición
+distribuida. Cada polling recalcula todo y consume presupuesto de 5 s.
+Respuestas mayores de 8 MiB fallan en el puente Go. Estado y resultados
+pueden cambiar entre solicitudes: el snapshot es consistente, no instantáneo
+al recibirlo. No existe un reloj de simulación en el protocolo, por lo que
+no se calcula "duración hasta ahora" a partir del reloj del servidor.

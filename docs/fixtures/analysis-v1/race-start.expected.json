@@ -1,0 +1,155 @@
+{
+  "gameId": "racing",
+  "matchId": "race-live",
+  "state": "open",
+  "metrics": [
+    {
+      "id": "duration.match",
+      "label": "Duración de partida",
+      "scope": "match",
+      "subjectId": "race-live",
+      "status": "unavailable",
+      "source": {
+        "templateId": "duration/v1",
+        "instanceId": "duration",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": null,
+      "unit": "seconds",
+      "reason": "awaiting_finish"
+    },
+    {
+      "id": "lap_time.avg.player",
+      "label": "Tiempo medio por vuelta",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "unavailable",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": null,
+      "unit": "ms",
+      "reason": "no_samples"
+    },
+    {
+      "id": "lap_time.avg.player",
+      "label": "Tiempo medio por vuelta",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "unavailable",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": null,
+      "unit": "ms",
+      "reason": "no_samples"
+    },
+    {
+      "id": "lap_time.total.player",
+      "label": "Tiempo acumulado de vueltas",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": 0,
+      "unit": "ms"
+    },
+    {
+      "id": "lap_time.total.player",
+      "label": "Tiempo acumulado de vueltas",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": 0,
+      "unit": "ms"
+    },
+    {
+      "id": "laps.match",
+      "label": "Vueltas de la partida",
+      "scope": "match",
+      "subjectId": "race-live",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": 0,
+      "unit": "events"
+    },
+    {
+      "id": "laps.player",
+      "label": "Vueltas por jugador",
+      "scope": "player",
+      "subjectId": "p1",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": 0,
+      "unit": "events"
+    },
+    {
+      "id": "laps.player",
+      "label": "Vueltas por jugador",
+      "scope": "player",
+      "subjectId": "p2",
+      "status": "provisional",
+      "source": {
+        "templateId": "event-metrics/v1",
+        "instanceId": "laps",
+        "profileVersion": "1.0.0"
+      },
+      "basis": {
+        "eventCount": 1,
+        "lastEventId": "s"
+      },
+      "value": 0,
+      "unit": "events"
+    }
+  ],
+  "patterns": []
+}

@@ -1,0 +1,21 @@
+{
+  "gameId": "racing",
+  "matchId": "race-live",
+  "state": "open",
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "s",
+      "timestamp": "2026-10-17T18:00:00Z",
+      "gameId": "racing",
+      "matchId": "race-live",
+      "type": "MATCH_STARTED",
+      "data": {
+        "players": [
+          "p1",
+          "p2"
+        ]
+      }
+    }
+  ]
+}

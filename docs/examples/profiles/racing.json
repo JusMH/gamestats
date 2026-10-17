@@ -1,0 +1,67 @@
+{
+  "profileSchemaVersion": 1,
+  "profileVersion": "1.0.0",
+  "gameId": "racing",
+  "playersField": "/data/players",
+  "capabilities": [
+    {
+      "templateId": "event-metrics/v1",
+      "instanceId": "laps",
+      "availability": "live",
+      "metrics": [
+        {
+          "id": "laps.player",
+          "label": "Vueltas por jugador",
+          "eventType": "LAP_COMPLETED",
+          "operation": "count",
+          "scope": "player",
+          "unit": "events"
+        },
+        {
+          "id": "laps.match",
+          "label": "Vueltas de la partida",
+          "eventType": "LAP_COMPLETED",
+          "operation": "count",
+          "scope": "match",
+          "unit": "events"
+        },
+        {
+          "id": "lap_time.total.player",
+          "label": "Tiempo acumulado de vueltas",
+          "eventType": "LAP_COMPLETED",
+          "operation": "sum",
+          "scope": "player",
+          "unit": "ms",
+          "field": "/data/durationMs",
+          "numberKind": "integer",
+          "minimum": 1
+        },
+        {
+          "id": "lap_time.avg.player",
+          "label": "Tiempo medio por vuelta",
+          "eventType": "LAP_COMPLETED",
+          "operation": "avg",
+          "scope": "player",
+          "unit": "ms",
+          "field": "/data/durationMs",
+          "numberKind": "integer",
+          "minimum": 1
+        }
+      ]
+    },
+    {
+      "templateId": "duration/v1",
+      "instanceId": "duration",
+      "availability": "final",
+      "parameters": {
+        "id": "duration.match",
+        "label": "Duración de partida",
+        "scope": "match",
+        "startEventType": "MATCH_STARTED",
+        "endEventType": "MATCH_FINISHED",
+        "unit": "seconds"
+      }
+    }
+  ],
+  "specializedAnalyzers": []
+}
