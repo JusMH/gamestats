@@ -9,7 +9,8 @@
 | Scala 4B: patrones y especialización | Implementado | Ventanas temporales, tablero Gato y 13 fixtures completos, motor puro/HTTP/integración. |
 | Simulador 5 | Implementado | Seis partidas propias, tres juegos, productores HTTP, fases concurrentes y verificación independiente en vivo/final. |
 | Docker y Compose 6 | Implementado y verificado | Tres imágenes, salud, red interna, tarea finita y verificación; estado ejecutado en docker.md. |
-| CI/CD y deployment | Pendiente | CI/CD es la siguiente tarea; deployment requiere una etapa posterior. |
+| CI 7: GitHub Actions | Implementado; ejecución remota pendiente | Go/race, Scala, contratos, integración Docker y artefactos; ver README del pipeline. |
+| CD y deployment | Pendiente | Requiere decisiones de registro, infraestructura y credenciales. |
 
 La implementación 5 no modificó lógica Go/Scala, perfiles ni fixtures.
 Documentación operativa: [Go](../go-ingestion/README.md),
@@ -32,10 +33,11 @@ y [simulador](../simulator/README.md); ejecución de contenedores en [Docker](do
 | Simultaneidad | Workers por partida y barreras; seis solicitudes HTTP simultáneas demostradas. |
 | Pruebas de contratos e integración | 13 fixtures Scala; escenarios propios del simulador con servicios reales. |
 | Docker y ejecución integrada reproducible | Tres Dockerfiles multietapa y Compose; verificación y resultados en docker.md. |
-| CI/CD y deployment funcional | Pendientes. |
+| Integración continua | Workflow implementado y validado localmente; primera ejecución GitHub pendiente. |
+| CD y deployment funcional | Pendientes. |
 | Documentación y defensa | Contratos, perfiles, fixtures, README e informes reproducibles locales. |
 
-El MVP académico completo aún requiere CI/CD, despliegue y su validación final.
+El MVP académico completo aún requiere validar CI en GitHub, CD, despliegue y su validación final.
 Docker dispone de una etapa específica de verificación; no se da por concluida
 la entrega académica por disponer de ejecución local.
 
@@ -79,24 +81,40 @@ portable: construcción, salud, demo, negativos, duplicados, otro ID y limpieza
 de un proyecto exclusivo. El script nunca declara aprobado un fallo del motor
 ni borra recursos de otros proyectos. La evidencia es local e ignorada por Git.
 
-## Próxima tarea precisa: CI/CD
+## Implementación 7: integración continua
 
-1. Elegir el proveedor de CI y fijar runtimes compatibles con las versiones
-   actuales, sin modificar contratos para simplificar el pipeline.
-2. Ejecutar pruebas/vet Go de ingestión y simulador, pruebas Scala,
-   verificador de fixtures y pruebas de configuración Docker.
-3. Construir las imágenes y ejecutar docker/verify.py con un proyecto exclusivo
-   de cada ejecución, conservando evidencia ante éxito o fallo.
-4. Comprobar errores esperados por su razón, no solo por salida distinta de cero;
-   mantener verificaciones de métricas y patrones habilitadas.
-5. Garantizar limpieza al cancelar y no interferir con otros trabajos de CI.
-6. Definir política de cachés/artefactos. Publicación de imágenes requiere
-   acordar registro, versiones y credenciales; no inventarlos.
+[GameStats CI](../.github/workflows/README.md) ejecuta trabajos independientes
+Go (matriz de dos módulos), Scala, contratos/infraestructura e integración
+Docker real; CI result resume y exige éxito de todos. Triggers: PR a main,
+push a main y workflow_dispatch. Ubuntu 24.04, Go 1.26.5, Temurin 21, sbt
+1.11.7 y Scala 3.3.7. Acciones oficiales fijadas por SHA, token de lectura,
+sin secretos, publicación de imágenes ni cambios de protección de ramas.
 
-Criterio de salida: cada cambio ejecuta los checks de los tres módulos y una
-integración real en contenedores, con evidencia accesible y fallo explícito
-ante regresiones. Esta implementación no agrega workflows ni publica imágenes.
-Deployment remoto y su validación quedan para una tarea posterior.
+Verificaciones locales de esta etapa: ambos módulos Go pasan build/test/vet y
+-race en Linux con CGO=1 y GCC, sin carreras detectadas. Scala: compile/test/
+dockerStage y 143 pruebas; artefacto con 13 fixtures; 16 pruebas de infraestructura;
+verificador 30 JSON/13 pares/9 mutaciones; actionlint y guards de evidencia.
+El verificador Docker real pasó dos demos 6/50/60, negativos, duplicados,
+perfiles ausentes y limpieza en el proyecto exclusivo ci-local-20261017-7.
+
+Esto no acredita una ejecución remota de GitHub Actions: queda pendiente
+subir la rama y abrir el PR por decisión humana. Tras la primera ejecución,
+revisar logs, artefactos de 14 días, healthchecks y resourcesReleased=true.
+La limitación histórica del host Windows para -race permanece en ese host;
+la prueba sí se ejecutó en Linux durante esta etapa y es obligatoria en CI.
+
+## Próxima tarea: publicación y deployment, previa decisión de infraestructura
+
+1. Completar la primera ejecución CI remota y resolver cualquier diferencia
+   del runner sin ocultar fallos ni desactivar verificaciones.
+2. Decidir plataforma, registro, política de versiones y retención de imágenes.
+3. Acordar credenciales de mínimo privilegio y separación CI/CD.
+4. Diseñar deployment y verificación de salud/análisis en esa infraestructura.
+5. Resolver la volatilidad de Go y las políticas de acceso según el alcance
+   aprobado; no asumir persistencia o producción a partir de Compose local.
+
+Se propone CI result como check obligatorio, pero no se modificaron reglas
+de main. No hay publicación de imágenes ni deployment implementados.
 
 ## Extensiones fuera del alcance actual
 

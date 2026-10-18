@@ -14,11 +14,11 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 | `scala-analysis/` | Transformación funcional, estadísticas y patrones en Scala. |
 | `simulator/` | Fuente simulada de eventos para pruebas y demostración. |
 | `docs/` | Arquitectura, contrato de eventos y decisiones técnicas. |
-| `.github/workflows/` | CI/CD (pendiente). |
+| `.github/workflows/` | CI implementada; validación remota pendiente. CD pendiente. |
 
 ## Estado del proyecto
 
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI/CD y el despliegue están pendientes. Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI está implementada con GitHub Actions y pendiente de su primera ejecución remota; CD y despliegue siguen pendientes. Ver [pipeline y verificaciones](.github/workflows/README.md). Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -47,7 +47,7 @@ El núcleo permanece genérico. Gato y Snake son juegos principales de demostrac
 
 - [Arquitectura](docs/architecture.md), [sobre v1](docs/events.md) e [integración HTTP](docs/integration-api.md).
 - [Perfiles y plantillas](docs/analysis-templates.md), [datos de juegos](docs/games.md) y [resultados en vivo/finales](docs/metrics-and-patterns.md).
-- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y siguiente tarea de CI/CD](docs/implementation-roadmap.md).
+- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y hoja de ruta](docs/implementation-roadmap.md).
 
 La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El motor 4B ya se implementó y probó con los 13 fixtures completos de Gato, Snake, racing y juego desconocido, incluyendo integración Go → Scala real.
 ## Simulador multijuego disponible
@@ -67,7 +67,7 @@ Integración real ejecutada: 50 eventos aceptados en seis partidas y 60 consulta
 verificadas (48 abiertas, 12 cerradas), con seis solicitudes simultáneas.
 También se comprobaron los casos negativos y el rechazo al reutilizar IDs.
 El README del simulador incluye arranque completo, script automatizado Windows,
-pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; la siguiente etapa es CI/CD.
+pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; el [workflow CI](.github/workflows/README.md) está preparado; publicación y deployment requieren una decisión de infraestructura.
 
 ## Ejecución con Docker Compose
 
@@ -87,3 +87,15 @@ incluye versiones, salud, logs, seguridad y resultados de las pruebas.
 Verificación automatizada opcional: python docker/verify.py.
 Comprobada en contenedores: dos demos de seis partidas y 60 consultas cada una,
 negativos, duplicados y nuevo ID; recursos de pruebas eliminados.
+
+## Integración continua
+
+[GameStats CI](.github/workflows/README.md) se activa en PR hacia main, push a
+main y ejecución manual. Comprueba ambos módulos Go con detector de carreras,
+Scala/MUnit y sus 13 fixtures, empaquetado, contratos, 16 pruebas de infraestructura
+e integración Docker real. Conserva evidencia y reportes XML aun cuando fallen
+las pruebas; CI result exige éxito de todos los trabajos.
+
+El workflow está validado localmente, pero aún no se ha ejecutado en GitHub.
+No se publican imágenes ni se realiza deployment. La guía del pipeline explica
+versiones, reproducción local, diagnóstico y pasos de revisión del primer PR.
