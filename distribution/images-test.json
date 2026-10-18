@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "version": "v1.0.0",
+  "revision": "0000000000000000000000000000000000000000",
+  "repository": "JusMH/gamestats",
+  "platform": "linux/amd64",
+  "testOnly": true,
+  "images": {
+    "go-ingestion": {
+      "image": "ghcr.io/jusmh/gamestats-go-ingestion",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "scala-analysis": {
+      "image": "ghcr.io/jusmh/gamestats-scala-analysis",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "simulator": {
+      "image": "ghcr.io/jusmh/gamestats-simulator",
+      "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  }
+}

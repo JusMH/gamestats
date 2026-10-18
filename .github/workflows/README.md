@@ -168,17 +168,35 @@ proyecto ci-local-20261017-7, dos demos completas, negativos/duplicados/perfiles
 ausentes correctos y resourcesReleased=true. Evidencia local ignorada en
 docker/evidence/ci-local-20261017-7/summary.json (archivo local ignorado por Git).
 
-**GitHub Actions aún no se ejecutó remotamente.** Se requiere revisión humana,
-commit/push y PR hacia main para comprobar por primera vez los jobs en GitHub,
-la descarga exacta de herramientas del runner y la subida real de artefactos.
-No se crearon commits, pushes ni PR en esta entrega. No se requiere ningún secreto.
-Fallos de descarga o agotamiento de recursos producen rojo y deben diagnosticarse;
-no se ocultan. Las versiones del runner y Docker pueden evolucionar.
+CI fue aprobada y fusionada mediante el PR #11, después de corregir la selección
+de Temurin a Java 21. Las comprobaciones locales anteriores se conservan como
+registro; ya no representan una primera ejecución remota pendiente.
+CI result sigue siendo la propuesta de check obligatorio, sin cambiar reglas
+del repositorio. ci.yml mantiene contenidos y permisos de solo lectura.
 
-Tras la primera ejecución, revisar todos los jobs, CI result, artefactos y
-limpieza. Se propone CI result como check obligatorio de main, pero no se
-modificaron reglas del repositorio. CD, publicación de imágenes y deployment
-quedan pendientes de decidir registro, plataforma, credenciales y políticas.
+## Publicación académica independiente — Etapa 8
+
+[academic-release.yml](academic-release.yml) se inicia manualmente mediante
+workflow_dispatch desde main, con versión, SHA completo revisado y confirmación
+`PUBLICAR v1.0.0`. Exige CI exacta antes de publicar imágenes GHCR. No se crea
+previamente un tag o Release. packages: write solo corresponde a images;
+contents: write solo a finalize. CI permanece sin cambios y con permisos de lectura.
+
+Tras verificar anónimamente el ZIP candidato, finalize crea un borrador, carga
+y verifica todos los adjuntos y solo entonces publica. Esto es compatible con
+Releases inmutables. Puede reanudar un borrador propio parcial sin sobrescribir
+y reconocer una publicación ya completa sin modificarla.
+
+La [guía técnica](../../docs/academic-distribution.md) detalla permisos, digests,
+aprobación y recuperación. Tras hacer públicos los paquetes, Re-run failed jobs
+reutiliza los artefactos y digests de images exitoso, sin reconstruir ni hacer push.
+Los consumidores utilizan outputs del productor para identificar su artefacto.
+
+Se ejecutaron 24 pruebas específicas de distribución, además de las 16 pruebas
+Docker existentes. No se ejecutó esta publicación ni se modificó la visibilidad
+de paquetes o la configuración de Releases. La instalación GHCR, finalización
+real y comportamiento remoto de reejecuciones siguen pendientes de comprobar.
+No se implementó deployment remoto.
 
 ## Referencias oficiales
 

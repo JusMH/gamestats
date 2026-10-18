@@ -1,0 +1,192 @@
+name: Academic distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable version to publish (no existing tag or Release)'
+        required: true
+        default: v1.0.0
+        type: string
+      reviewed_commit:
+        description: 'Reviewed full main SHA (40 lowercase hex characters)'
+        required: true
+        type: string
+      confirmation:
+        description: 'Human approval: type PUBLICAR followed by the version, e.g. PUBLICAR v1.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize package versions. Never cancel a publication partway through pushes.
+concurrency:
+  group: gamestats-academic-publication
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  approval:
+    name: Require manual main approval and exact CI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.gate.outputs.version }}
+      revision: ${{ steps.gate.outputs.revision }}
+      ciRunId: ${{ steps.gate.outputs.ciRunId }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - name: Test release controls and ZIP construction without publication
+        run: python -m unittest discover -s distribution -p 'test_*.py' -v
+      - name: Require approved main commit and complete successful CI
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p docker/evidence/release
+          python distribution/release.py gate --output docker/evidence/release/approved.json
+
+  images:
+    name: Publish three versioned GHCR images
+    needs: approval
+    outputs:
+      artifactName: release-images-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    permissions:
+      contents: read
+      packages: write
+    env:
+      RELEASE_VERSION: ${{ needs.approval.outputs.version }}
+      RELEASE_REVISION: ${{ needs.approval.outputs.revision }}
+      APPROVED_CI: ${{ needs.approval.outputs.ciRunId }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.approval.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - name: Prepare approved publication record
+        run: |
+          mkdir -p docker/evidence/release
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = {"version": os.environ["RELEASE_VERSION"], "revision": os.environ["RELEASE_REVISION"],
+                  "ciRunId": int(os.environ["APPROVED_CI"])}
+          Path("docker/evidence/release/approved.json").write_text(json.dumps(data))
+          PY
+      - name: Authenticate workflow token to GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build all images, refuse existing tags, push and record actual digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python distribution/release.py publish --record docker/evidence/release/approved.json --output docker/evidence/release/images.json
+      - name: Logout
+        if: always()
+        run: docker logout ghcr.io
+      - name: Preserve effective digests including partial failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: release-images-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docker/evidence/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  evaluation:
+    name: Build ZIP and verify anonymous evaluator installation
+    needs: [approval, images]
+    outputs:
+      artifactName: academic-evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.approval.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.images.outputs.artifactName }}
+          path: docker/evidence/release/
+      - name: Generate immutable evaluation ZIP from effective digests
+        run: |
+          python distribution/release.py pack --lock docker/evidence/release/images.json --output docker/evidence/release/package
+      - name: Pull anonymously and test extracted ZIP with real Go and Scala
+        env:
+          VERIFY_PROJECT: evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          python distribution/verify_package.py --zip docker/evidence/release/package/GameStats-Entrega-*.zip --project "$VERIFY_PROJECT" --evidence docker/evidence/release/verification
+      - name: Preserve verification, package and checksums
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: academic-evaluation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docker/evidence/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  finalize:
+    name: Create draft with verified assets, then publish Release
+    needs: [approval, evaluation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      APPROVED_CI: ${{ needs.approval.outputs.ciRunId }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ needs.approval.outputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.evaluation.outputs.artifactName }}
+          path: evidence/
+      - name: Finalize draft and publish only after all assets are verified
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python distribution/release.py finalize --directory evidence
+          echo 'Verified ZIP attached before publication; immutable Release flow completed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve final Release evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: release-finalization-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
