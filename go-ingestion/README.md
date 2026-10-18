@@ -282,13 +282,13 @@ No hay persistencia durable, reintentos idempotentes ni recuperación tras fallo
 GET /matches muestra solo estado de ingestión; GET /results delega las estadísticas al servicio Scala, si está disponible.
 
 Se envían snapshots a Scala bajo demanda; los resultados analíticos no se almacenan.
-No se implementan bases de datos, Docker, CI/CD, interfaz gráfica ni despliegue.
-Las próximas etapas coordinarán el contrato con el servicio Scala real,
-el manejo de fallos/reintentos y las políticas de retención.
+No hay bases de datos, CI/CD, interfaz gráfica ni despliegue; Docker se documenta al final.
+El servicio Scala real ya está integrado y verificado. Quedan pendientes
+las políticas de reintentos y retención.
 
 ## Integración con Scala bajo demanda
 
-Se implementa exclusivamente el mecanismo HTTP; **todavía requiere el módulo
+Se implementa exclusivamente el mecanismo HTTP; **utiliza el servicio
 real desarrollado en Scala**. El [contrato de integración](../docs/integration-api.md)
 conserva el transporte existente y ahora define los elementos analíticos para implementar Scala; documenta los límites
 y la política exacta de errores.
@@ -375,9 +375,24 @@ lecturas/escrituras concurrentes. Se conservan todas las pruebas anteriores.
 Para probar manualmente con un mock externo, configurarlo para responder a
 POST /analyze con HTTP 200 y el JSON de respuesta anterior, haciendo coincidir
 identificadores y state; iniciar Go con su URL base y usar los ejemplos de
-POST /events y GET /results. Confirmar el contrato y reemplazar el mock por
-Scala será responsabilidad conjunta del equipo.
+POST /events y GET /results. Para verificar el análisis completo, utilizar
+el servicio Scala real según su README o la guía Docker.
 
 ## Diseño analítico de Etapa 1
 
-El transporte Go existente no cambia. Los [perfiles componibles](../docs/analysis-templates.md) y los [fixtures](../docs/fixtures/analysis-v1/README.md) definen el futuro análisis de Gato, Snake y racing; no son funcionalidad Scala ya implementada. Ver [resultados provisionales y finales](../docs/metrics-and-patterns.md). Los ejemplos de combate anteriores siguen siendo ejemplos genéricos de ingestión, no analizadores del MVP.
+El transporte Go existente no cambia. Los [perfiles componibles](../docs/analysis-templates.md) y los [fixtures](../docs/fixtures/analysis-v1/README.md) definen el contrato analítico de Gato, Snake y racing, implementado en Scala 4A/4B; véase el README de Scala. Ver [resultados provisionales y finales](../docs/metrics-and-patterns.md). Los ejemplos de combate anteriores siguen siendo ejemplos genéricos de ingestión, no analizadores del MVP.
+
+## Ejecución con Docker
+
+Desde la raíz del repositorio:
+
+~~~sh
+docker compose up -d --build
+~~~
+
+La imagen Go es multietapa (Go 1.26.5 → Alpine 3.23.4, bases fijadas por digest),
+con usuario 10001:10001, healthcheck real y sin fuentes/compilador en runtime.
+Compose configura SCALA_SERVICE_URL=http://scala-analysis:9000 y publica
+127.0.0.1:8080. No se modifican los endpoints ni la implementación.
+El proceso conserva todas las partidas en memoria: detenerlo/recrearlo las pierde.
+[Guía Docker y procedimiento de integración](../docs/docker.md).

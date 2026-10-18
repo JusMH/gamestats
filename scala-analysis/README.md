@@ -4,7 +4,7 @@ Servicio real Scala 3 con POST /analyze y GET /health. Ejecuta perfiles
 declarativos con event-metrics/v1 (count/sum/avg), duration/v1,
 temporal-window/v1 y el analizador tic-tac-toe-line/v1.
 No hay lógica por videojuego en el ejecutor, estado entre consultas,
-simulador, Docker, CI/CD ni base de datos.
+CI/CD ni base de datos dentro del motor. El simulador es externo y Docker se documenta al final.
 
 ## Requisitos y versiones
 
@@ -266,7 +266,32 @@ detención inmediata tras ganar. Un cierre incompleto no inventa un empate:
 resultado unavailable/insufficient_evidence, con cero líneas observadas.
 No se valida física de Snake ni legalidad semántica de vueltas.
 
-La próxima tarea será el simulador multijuego determinista, con Gato,
-Snake y racing, partidas intercaladas y consultas abiertas/finales.
+El simulador multijuego de la implementación 5 ya está disponible; la ejecución
+Docker de la implementación 6 se describe a continuación. La siguiente etapa es CI/CD.
 No se implementaron simulador, Docker, CI/CD, deployment, base de datos,
 WebSockets/SSE ni reglas universales dentro de 4B.
+
+
+## Empaquetado y ejecución Docker
+
+Desde la raíz: docker compose up -d --build. Compose inicia Scala en
+0.0.0.0:9000, sin publicar el puerto al anfitrión, y Go usa su nombre DNS.
+Los perfiles aprobados se incluyen en /app/profiles; la validación existente
+impide arrancar con perfiles ausentes, vacíos o inválidos.
+
+La construcción usa JDK 21.0.12+8 y el lanzador sbt 1.11.7 verificado por
+SHA-256. El nuevo task dockerStage (project/DockerPackaging.scala) empaqueta
+app.jar y cinco JAR de runtime, excluyendo MUnit. La imagen final usa JRE 21,
+usuario 10001:10001 y no contiene sbt, fuentes ni cachés. No cambian motor,
+versiones Scala/dependencias ni perfiles.
+
+Comprobación local opcional, con JDK 21, desde scala-analysis:
+
+~~~powershell
+.\sbtw.ps1 dockerStage compile test
+cd ..
+python docker/check-stage.py
+~~~
+
+Esta prueba verifica el artefacto en el anfitrión; no equivale a ejecutar
+un contenedor. [Guía Docker y resultados de integración](../docs/docker.md).
