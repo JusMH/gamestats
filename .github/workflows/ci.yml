@@ -150,6 +150,18 @@ jobs:
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           sys.exit(0 if result.wasSuccessful() and result.testsRun == 16 else 1)
           PY
+      - name: Run distribution release tests with discovery count guard
+        run: |
+          python - <<'PY'
+          import sys, unittest
+          suite = unittest.defaultTestLoader.discover("distribution", pattern="test_*.py")
+          count = suite.countTestCases()
+          print(f"Discovered {count} distribution tests", flush=True)
+          if count != 25:
+              raise SystemExit(f"Expected 25 distribution tests, found {count}")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(0 if result.wasSuccessful() and result.testsRun == count else 1)
+          PY
 
   integration:
     name: Docker / real multigame integration
