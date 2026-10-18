@@ -1,94 +1,111 @@
-# MVP académico y siguiente implementación
+# MVP académico y hoja de implementación
 
-## Estado verificable de esta etapa
+## Estado actual verificable
 
-Go ya tiene ingestión, validación v1, estado concurrente, snapshots y puente
-HTTP bajo demanda. Esta entrega agrega únicamente diseño documental,
-perfiles JSON, fixtures y un verificador de ejemplos.
-No implementa Scala, simulador, lógica Go adicional, Docker ni CI/CD.
+| Etapa | Estado | Evidencia |
+| --- | --- | --- |
+| Go 1–3: ingestión y coordinación | Implementado | Sobre v1, memoria por juego/partida, lifecycle, concurrencia, snapshots y puente HTTP bajo demanda. |
+| Scala 4A: motor funcional | Implementado | Perfiles declarativos, count/sum/avg, duración, composición y HTTP. |
+| Scala 4B: patrones y especialización | Implementado | Ventanas temporales, tablero Gato y 13 fixtures completos, motor puro/HTTP/integración. |
+| Simulador 5 | Implementado | Seis partidas propias, tres juegos, productores HTTP, fases concurrentes y verificación independiente en vivo/final. |
+| Docker y Compose | Pendiente | Próxima tarea delimitada. |
+| CI/CD y deployment | Pendiente | Etapas posteriores obligatorias. |
 
-## Primera implementación obligatoria del sistema completo
+La implementación 5 no modificó lógica Go/Scala, perfiles ni fixtures.
+Documentación operativa: [Go](../go-ingestion/README.md),
+[Scala](../scala-analysis/README.md), [verificación 4B](scala-4b.md)
+y [simulador](../simulator/README.md).
 
-| Requisito | Evidencia prevista |
+## Requisitos académicos cubiertos y pendientes
+
+| Requisito | Evidencia actual |
 | --- | --- |
-| Go: flujo, memoria y concurrencia | Pruebas existentes de ingestión, partidas y snapshots. |
-| Scala HTTP real independiente | POST /analyze probado con el puente Go. |
-| Programación funcional | Funciones puras con filter/map/groupBy/fold/flatMap; errores explícitos. |
-| count/sum/avg configurables | Perfiles y fixtures Snake/racing, sin condicionales por juego. |
-| Composición y alcances player/match | Perfiles con varias métricas y capacidades simultáneas. |
-| Métrica multievento | Duración inicio-fin y tiempo inicio-muerte; no solo campos precalculados. |
-| Secuencia | Ventana Snake de tres manzanas y reconstrucción de tablero Gato. |
-| Múltiples juegos | Snake y Gato principales; racing prueba de extensibilidad. |
-| Análisis en vivo y final | race-start → race-live-2 → race-live-3 → race-final, GET repetidos. |
-| Simulación suficiente | Futuro productor determinista de eventos, partidas intercaladas; ningún videojuego completo. |
-| Pruebas de contrato e integración | Requests/expected de fixtures, errores y concurrencia. |
-| Docker, CI/CD y deployment | Etapas posteriores obligatorias de la entrega académica. |
-| Documentación y defensa | Documentos de esta carpeta y resultados reproducibles. |
+| Ingestión, flujo, memoria y concurrencia Go | Pruebas de eventos, partidas, snapshots y HTTP. |
+| Servicio Scala independiente | POST /analyze y GET /health; puente Go real. |
+| Programación funcional | Transformaciones puras, agrupaciones, folds inmutables y errores explícitos. |
+| Métricas configurables | count/sum/avg por jugador/partida, sin condicionales por juego en el motor. |
+| Composición | Racing combina métricas/duración; Snake agrega ventanas; Gato agrega especialización. |
+| Análisis multievento | Inicio-fin, inicio-muerte, ternas de manzanas y tablero reconstruido. |
+| Secuencias | Ventana greedy temporal y primera línea ganadora. |
+| Análisis abierto/final | GET /results repetidos sin acumulación; provisional/final/unavailable/invalid. |
+| Fuente externa simulada | Módulo Go separado, dos partidas por juego y dos jugadores por partida. |
+| Simultaneidad | Workers por partida y barreras; seis solicitudes HTTP simultáneas demostradas. |
+| Pruebas de contratos e integración | 13 fixtures Scala; escenarios propios del simulador con servicios reales. |
+| Docker y ejecución integrada reproducible | Pendiente de contenerización; hoy existe script local Windows. |
+| CI/CD y deployment funcional | Pendientes. |
+| Documentación y defensa | Contratos, perfiles, fixtures, README e informes reproducibles locales. |
 
-Las plantillas indispensables son event-metrics/v1, duration/v1,
-temporal-window/v1 y la especialización tic-tac-toe-line/v1.
-No es necesario crear un subsistema distinto para cada sustantivo:
-puntajes/daño usan sum; turnos/rondas/vueltas usan count si hay eventos.
+El MVP académico completo aún requiere contenedores, CI/CD, despliegue y su
+validación final. No se da por concluido por disponer del simulador.
 
-## Extensiones sencillas posteriores, no implementadas
+## Verificación ejecutada en implementación 5
 
-min/max para mejor vuelta, unidades adicionales explícitas, nuevas
-configuraciones sobre tipos existentes. Su relativa simplicidad no las
-incluye automáticamente en el primer motor.
-Nuevos mapeos de eventos a count/sum/avg ya son configuración MVP.
+- Simulador: compilación y go vet correctos; 31 funciones de prueba,
+  90 casos terminales aprobados, sin contar dos veces los subtests padre.
+- Servidor Go: go test ./... y go vet ./... correctos.
+- Scala: compilación y 143 pruebas aprobadas, incluidos los 13 fixtures.
+- Verificador documental: 30 JSON, 13 pares y 9 mutaciones inválidas.
+- Integración con procesos independientes: seis partidas, 50 eventos,
+  60 consultas verificadas, 48 abiertas y 12 cerradas; pico de seis
+  solicitudes simultáneas.
+- Tres comprobaciones negativas y seis rechazos 409 al repetir el run-id.
+- go test -race del simulador pendiente por entorno: CGO deshabilitado
+  y ausencia de gcc/clang en PATH. No se declara aprobado.
 
-## Extensiones opcionales excluidas
+El simulador genera escenarios propios y expectativas explícitas: no usa
+los fixtures como un sustituto de sus productores. Las pruebas HTTP
+guionizadas comprueban la orquestación; la integración ejecutada realiza
+realmente los cálculos en Scala.
 
-Ajedrez/damas completos, motor universal de reglas, interfaz gráfica,
-registro dinámico mediante API, persistencia distribuida, Kafka, torneos,
-equipos, procesamiento incremental avanzado, WebSockets/SSE.
-No se autorizan en esta etapa ni se añaden para cumplir el MVP.
-La retención básica deberá decidirse antes de escalar el despliegue,
-sin introducir por ello una base de datos distribuida.
+## Próxima tarea precisa: contenedores y Docker Compose
 
-## Próxima tarea precisa: Scala mínimo con capacidades genéricas
+1. Revisar los requisitos de compilación y ejecución: Go, JDK 21, Scala/sbt,
+   perfiles locales y variables de entorno ya existentes.
+2. Crear builds reproducibles de Go, Scala y simulador, con versiones fijadas
+   y sin copiar cachés, evidencia ni secretos del equipo de desarrollo.
+3. Configurar Compose con Go y Scala independientes, red interna y perfiles
+   montados o incluidos de manera explícita. Mantener contratos y endpoints.
+4. Ejecutar el simulador como cliente finito de la red Compose, pasando
+   go-url, run-id, verificación y ruta de evidencia.
+5. Definir salud y readiness sin asumir que orden de arranque equivale a
+   servicio listo; conservar límites/errores HTTP y cancelación.
+6. Verificar escenarios normales/negativos, resultados abiertos/finales y
+   repetición con 409 en los servicios reales dentro de contenedores.
+7. Documentar arranque, inspección, logs, ejecución del simulador y parada;
+   indicar que reiniciar Go pierde su almacenamiento en memoria.
 
-1. Preparar scala-analysis como módulo ejecutable con dependencias mínimas
-   de HTTP/JSON seleccionadas explícitamente; no cambiar Go.
-2. Implementar modelos del sobre y snapshot y POST /analyze con exterior
-   exacto de integration-api.md. Scala no mantiene estado entre solicitudes.
-3. Cargar perfiles locales una vez al arrancar, validarlos y fijar versión.
-   Registrar capacidades por ID; rechazar configuraciones desconocidas.
-4. Implementar funciones puras para event-metrics/v1 (count/sum/avg) y
-   duration/v1, validación numérica Decimal, roster, estados y composición.
-5. Hacer pasar primero race-start, race-live-2, race-live-3, race-final y
-   unknown-game; consultas repetidas no cambian valores ni cierran partidas.
-6. Añadir pruebas de configuración inválida, IDs repetidos, campos ausentes,
-   división sin muestras, números incorrectos y snapshots incoherentes.
-7. Conectar el servicio real mediante SCALA_SERVICE_URL y ejecutar pruebas
-   de integración con Go existente; conservar 200/502/503/504 actuales.
-8. Documentar instalación y ejecución Scala y la evidencia de compatibilidad.
+Criterio de salida: levantar el sistema con Compose y obtener la misma
+demostración verificada, sin instalaciones locales de Go/Scala para ejecutarla.
+No incluir CI/CD, deployment ni bases de datos dentro de esa tarea.
 
-Criterio de salida de esa tarea: racing demuestra dos capacidades
-componibles con valores en vivo/finales, sin un RacingAnalyzer ni if gameId.
-No implementar simulador, Docker o UI dentro de esa tarea.
-Después, en tareas acotadas: ventana temporal Snake, analizador Gato,
-simulador de tres juegos, integración completa, Docker, CI/CD y despliegue.
-El MVP académico no estará completo hasta esas etapas.
+Después: CI con pruebas de los tres módulos y contratos; publicación y
+deployment acordados con el equipo; verificación remota y documentación final.
 
-## Riesgos y decisiones a ratificar
+## Extensiones fuera del alcance actual
 
-- Este diseño fija políticas para no dejar ambigüedad: ternas greedy sin
-  solapamiento, orden por timestamp/índice, perfil estático por gameId,
-  error por muestra inválida, ausencia de perfil → arrays vacíos.
-  El equipo debe ratificarlas antes de implementar; no bloquean esta
-  entrega documental ni cambian el transporte existente.
-- Alcance limitado de Gato: demostrar una línea no demuestra una partida
-  legal completa. Decidir si la rúbrica exige validación adicional.
-- El puente oculta errores HTTP de dominio de Scala como 502. Se conserva;
-  si se desea diagnóstico público más preciso hará falta otra tarea Go.
-- Go valida solo el exterior analítico. Confiar en interiores exige pruebas
-  y validación Scala; su ausencia no se resuelve editando Go en esta etapa.
-- Los perfiles no viajan en la petición. Cambiar la versión activa cambia
-  resultados incluso de partidas cerradas. Versiones inmutables y source
-  permiten identificarlo, pero no hay análisis histórico por versión.
-- Polling y snapshots completos pueden exceder 5 s/8 MiB en partidas largas.
-  Medir antes de elegir intervalos, límites globales y retención.
-- Confirmar herramienta/build y bibliotecas Scala según entorno académico,
-  más plataforma y credenciales de despliegue, en sus tareas respectivas.
-- No hay garantías exactamente una vez, datos durables ni estado compartido.
+min/max para mejor vuelta, nuevas unidades, capacidades adicionales y nuevos
+perfiles pueden estudiarse después; no están incluidos por ser sencillos.
+Nuevos mapeos de eventos a count/sum/avg ya funcionan mediante perfiles.
+
+No se incorporan ajedrez/damas completos, motor universal de reglas,
+interfaces gráficas, registro dinámico por API, persistencia distribuida,
+Kafka, torneos/equipos, procesamiento incremental avanzado ni WebSockets/SSE.
+
+## Riesgos y decisiones pendientes
+
+- Go retiene todos los eventos en memoria y no comparte estado entre procesos.
+  Definir límites/retención antes de escalar; no asumir persistencia.
+- No hay reintentos idempotentes, reapertura ni exactamente una vez.
+  El simulador usa run-id distinto para nuevas demostraciones.
+- Snapshots completos y polling tienen costo creciente. Medir antes de
+  introducir caché, procesamiento incremental o mayor frecuencia.
+- La versión activa del perfil puede cambiar resultados incluso cerrados;
+  source.profileVersion debe permanecer visible y las versiones ser inmutables.
+- El puente traduce fallos HTTP de Scala a 502; diagnósticos públicos más
+  específicos requerirían una tarea separada, no modificaciones en el simulador.
+- Gato verifica la evidencia acordada, sin certificar todas las reglas.
+  Si la rúbrica exige más legalidad, deberá acordarse explícitamente.
+- La detección de carreras Go debe ejecutarse en un entorno con CGO y
+  compilador C compatibles; las pruebas concurrentes actuales no la sustituyen.
+- La plataforma de despliegue, credenciales y políticas de acceso deben
+  acordarse al preparar deployment, sin inventar infraestructura ahora.
