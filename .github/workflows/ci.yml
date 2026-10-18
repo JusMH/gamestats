@@ -1,0 +1,227 @@
+name: GameStats CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Do not cancel a running integration while its verifier is cleaning up.
+concurrency:
+  group: gamestats-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  go:
+    name: Go / ${{ matrix.module }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [go-ingestion, simulator]
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    env:
+      CGO_ENABLED: "1"
+      CC: gcc
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.26.5'
+          # Both modules use stdlib only and have no go.sum to key this cache.
+          cache: false
+      - name: Confirm race prerequisites
+        run: |
+          go version
+          gcc --version
+          test "$(go env CGO_ENABLED)" = 1
+          test "$(go env CC)" = gcc
+      - name: Build
+        run: go build ./...
+      - name: Test
+        run: go test ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Race detector
+        run: go test -race ./...
+
+  scala:
+    name: Scala / engine, HTTP and packaging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: sbt
+          cache-dependency-path: |
+            scala-analysis/build.sbt
+            scala-analysis/project/build.properties
+            scala-analysis/project/repositories
+            scala-analysis/project/DockerPackaging.scala
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - name: Prepare verified sbt 1.11.7 launcher
+        working-directory: scala-analysis
+        run: |
+          mkdir -p .tools
+          curl --fail --silent --show-error --location \
+            https://repo.maven.apache.org/maven2/org/scala-sbt/sbt-launch/1.11.7/sbt-launch-1.11.7.jar \
+            --output .tools/sbt-launch-1.11.7.jar
+          echo 'f92a2095ac75008764fe3b2b793ffe624c4fbef5bfd9b0022e4bc2daf668c651  .tools/sbt-launch-1.11.7.jar' | sha256sum --check --strict
+      - name: Compile, MUnit fixtures and dockerStage
+        working-directory: scala-analysis
+        run: |
+          java -Xmx1g -Dsbt.supershell=false -Dsbt.server.autostart=false \
+            -Dsbt.override.build.repos=true -Dsbt.repository.config=project/repositories \
+            -jar .tools/sbt-launch-1.11.7.jar compile test dockerStage
+      - name: Verify packaged runtime and all 13 fixtures
+        run: python docker/check-stage.py
+      - name: Preserve Scala test reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: scala-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: scala-analysis/target/test-reports/*.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  contracts:
+    name: Contracts / fixtures, infrastructure and workflow
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.26.5'
+          cache: false
+      - name: Validate workflow with actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
+      - name: Check Docker and Compose compatibility
+        run: |
+          docker version
+          docker compose version
+          python - <<'PY'
+          import re, subprocess
+          version = subprocess.check_output(["docker", "compose", "version", "--short"], text=True)
+          match = re.match(r"v?(\d+)\.(\d+)", version.strip())
+          assert match and tuple(map(int, match.groups())) >= (2, 20), version
+          PY
+          docker compose config --quiet
+      - name: Validate documented fixtures
+        run: python docs/fixtures/analysis-v1/check.py
+      - name: Run infrastructure tests with discovery count guard
+        run: |
+          python - <<'PY'
+          import sys, unittest
+          suite = unittest.defaultTestLoader.discover("docker", pattern="test_*.py")
+          count = suite.countTestCases()
+          print(f"Discovered {count} infrastructure tests", flush=True)
+          if count != 16:
+              raise SystemExit(f"Expected 16 infrastructure tests, found {count}")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(0 if result.wasSuccessful() and result.testsRun == 16 else 1)
+          PY
+
+  integration:
+    name: Docker / real multigame integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      # Numeric GitHub IDs only; no PR title, branch name or user shell input.
+      CI_PROJECT: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      CI_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      CI_EVIDENCE: docker/evidence/ci
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.12'
+      - name: Run existing real Docker verifier
+        timeout-minutes: 65
+        run: |
+          python docker/verify.py --project "$CI_PROJECT" --run-id "$CI_RUN_ID" --evidence "$CI_EVIDENCE"
+      - name: Publish integration summary and require complete evidence
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          directory = Path(os.environ["CI_EVIDENCE"])
+          path = directory / "summary.json"
+          if not path.is_file():
+              raise SystemExit("Missing mandatory integration summary.json")
+          data = json.loads(path.read_text())
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
+              output.write("### Docker integration evidence\n\n```json\n")
+              output.write(json.dumps(data, indent=2) + "\n```\n")
+          if data.get("status") != "passed":
+              raise SystemExit("Docker verifier did not pass; inspect evidence artifact")
+          for name in ["build.log", "service-inspect.log", "demo.json", "negative.json",
+                       "duplicate.json", "new-id.json", "down.log", "containers.log",
+                       "networks.log", "images-remaining.log"]:
+              if not (directory / name).is_file():
+                  raise SystemExit("Missing mandatory evidence: " + name)
+          if data.get("resourcesReleased") is not True:
+              raise SystemExit("Docker project cleanup not confirmed")
+          PY
+      - name: Preserve Docker evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: docker-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docker/evidence/ci/
+          if-no-files-found: error
+          retention-days: 14
+
+  result:
+    name: CI result
+    if: always()
+    needs: [go, scala, contracts, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summarize jobs and reject incomplete runs
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          jobs = json.loads(os.environ["JOB_RESULTS"])
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
+              output.write("## GameStats CI\n\n| Job | Result |\n| --- | --- |\n")
+              for name, job in jobs.items():
+                  output.write(f"| {name} | {job['result']} |\n")
+          if not all(job["result"] == "success" for job in jobs.values()):
+              raise SystemExit("CI failed: a required job failed, was cancelled or was skipped")
+          PY
