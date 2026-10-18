@@ -284,9 +284,16 @@ class FinalizationTests(unittest.TestCase):
     def test_anonymous_verification_required_before_creating_release(self):
         self.summary["anonymousPulls"]=False
         (self.folder/"verification/summary.json").write_text(json.dumps(self.summary))
-        with patch.object(release,"gh") as command,patch.object(release,"find_release") as remote:
-            with self.assertRaises(ValueError):release.finalize(self.folder)
-        command.assert_not_called();remote.assert_not_called()
+        with patch.object(release, "create_draft_release") as create, \
+             patch.object(release, "upload_asset") as upload, \
+             patch.object(release, "publish_draft") as publish, \
+             patch.object(release, "find_release") as remote:
+            with self.assertRaisesRegex(ValueError, "Successful anonymous evaluation"):
+                release.finalize(self.folder)
+        create.assert_not_called()
+        upload.assert_not_called()
+        publish.assert_not_called()
+        remote.assert_not_called()
 
     def test_existing_tag_or_release_rejected_before_images(self):
         for existing_release,existing_tag in [({},None),(None,{})]:
