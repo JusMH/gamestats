@@ -12,9 +12,11 @@ Compose están verificados; [v1.0.0 está publicada](../docs/academic-distributi
 
 ## Requisitos y arranque
 
-Ambos módulos declaran Go 1.22 en go.mod; esa versión mínima no se ha probado
-en esta auditoría. CI y Docker están verificados con Go 1.26.5
-en Windows/amd64. Solo biblioteca estándar, sin dependencias externas.
+Ambos módulos declaran Go 1.22 en go.mod, pero no hay evidencia suficiente
+para garantizar que toda la suite actual se ejecutó correctamente con esa versión.
+Las pruebas locales del simulador se realizaron en Windows/amd64 con Go 1.26.5.
+GitHub Actions CI se ejecutó en Linux con Go 1.26.5. Las imágenes y la evaluación
+Docker se verificaron en Linux/amd64. Solo biblioteca estándar, sin dependencias externas.
 Scala utiliza JDK 21 y su wrapper local sbt; no necesita un IDE ni una
 instalación global de Scala/sbt. Ver [preparación Scala](../scala-analysis/README.md).
 

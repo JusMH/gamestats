@@ -2,9 +2,11 @@
 
 Corte: **18 de octubre de 2026**. Repositorio JusMH/gamestats, rama de revisión
 docs/final-academic-audit, base main/origin/main
-7782fa9b4c88a73317a3b0b1eb51d0fbacca5d15. La revisión solo cambia Markdown;
-no modifica ejecutables, contratos JSON, perfiles, fixtures, workflows, Dockerfiles,
-tag o adjuntos publicados. No crea commits, pushes, PRs, merges ni Releases.
+7782fa9b4c88a73317a3b0b1eb51d0fbacca5d15. La auditoría modifica solamente
+documentación; sus cambios se proponen mediante el
+[PR #13](https://github.com/JusMH/gamestats/pull/13). No modifica ejecutables,
+contratos JSON, perfiles, fixtures, Dockerfiles ni workflows ejecutables.
+No altera el tag ni los adjuntos publicados de v1.0.0.
 
 ## Fuentes y alcance de la comprobación
 
