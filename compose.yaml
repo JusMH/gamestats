@@ -1,0 +1,67 @@
+name: gamestats
+
+services:
+  scala-analysis:
+    build:
+      context: .
+      dockerfile: scala-analysis/Dockerfile
+    environment:
+      SCALA_HOST: 0.0.0.0
+      SCALA_PORT: "9000"
+      SCALA_PROFILES_DIR: /app/profiles
+    expose:
+      - "9000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    stop_grace_period: 10s
+
+  go-ingestion:
+    build:
+      context: .
+      dockerfile: go-ingestion/Dockerfile
+    environment:
+      SCALA_SERVICE_URL: http://scala-analysis:9000
+    ports:
+      - "${GO_BIND_ADDRESS:-127.0.0.1}:${GO_PORT:-8080}:8080"
+    depends_on:
+      scala-analysis:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    stop_grace_period: 10s
+
+  simulator:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    # Prefix stays in ENTRYPOINT when 'compose run' replaces command.
+    # An explicit later --go-url still overrides it through Go's flag parser.
+    entrypoint: ["/usr/local/bin/simulator", "--go-url", "http://go-ingestion:8080"]
+    command:
+      - --run-id
+      - "${SIM_RUN_ID:-docker-demo-01}"
+      - --mode
+      - "${SIM_MODE:-demo}"
+      - --verify=true
+      - --concurrency
+      - "${SIM_CONCURRENCY:-6}"
+      - --timeout
+      - "${SIM_TIMEOUT:-10s}"
+      - --max-duration
+      - "${SIM_MAX_DURATION:-2m}"
+    depends_on:
+      scala-analysis:
+        condition: service_healthy
+      go-ingestion:
+        condition: service_healthy
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    restart: "no"

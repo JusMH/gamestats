@@ -18,7 +18,7 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 
 ## Estado del proyecto
 
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker, CI/CD y el despliegue están pendientes. Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI/CD y el despliegue están pendientes. Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -47,7 +47,7 @@ El núcleo permanece genérico. Gato y Snake son juegos principales de demostrac
 
 - [Arquitectura](docs/architecture.md), [sobre v1](docs/events.md) e [integración HTTP](docs/integration-api.md).
 - [Perfiles y plantillas](docs/analysis-templates.md), [datos de juegos](docs/games.md) y [resultados en vivo/finales](docs/metrics-and-patterns.md).
-- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y siguiente tarea de Docker Compose](docs/implementation-roadmap.md).
+- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y siguiente tarea de CI/CD](docs/implementation-roadmap.md).
 
 La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El motor 4B ya se implementó y probó con los 13 fixtures completos de Gato, Snake, racing y juego desconocido, incluyendo integración Go → Scala real.
 ## Simulador multijuego disponible
@@ -67,4 +67,23 @@ Integración real ejecutada: 50 eventos aceptados en seis partidas y 60 consulta
 verificadas (48 abiertas, 12 cerradas), con seis solicitudes simultáneas.
 También se comprobaron los casos negativos y el rechazo al reutilizar IDs.
 El README del simulador incluye arranque completo, script automatizado Windows,
-pruebas y limitaciones. Siguiente tarea: contenerización con Docker Compose.
+pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; la siguiente etapa es CI/CD.
+
+## Ejecución con Docker Compose
+
+Con Docker y Compose, desde la raíz, sin Go/Scala/sbt locales:
+
+~~~sh
+docker compose up -d --build
+docker compose run --rm simulator --run-id docker-demo-01
+docker compose run --rm simulator --mode negative --run-id docker-negative-01
+docker compose down
+~~~
+
+Go se publica en 127.0.0.1:8080; Scala es interno. El simulador se ejecuta
+bajo demanda, con verificación habilitada. Reiniciar Go pierde sus partidas.
+Para otra demostración utilizar otro run-id. La [guía Docker](docs/docker.md)
+incluye versiones, salud, logs, seguridad y resultados de las pruebas.
+Verificación automatizada opcional: python docker/verify.py.
+Comprobada en contenedores: dos demos de seis partidas y 60 consultas cada una,
+negativos, duplicados y nuevo ID; recursos de pruebas eliminados.

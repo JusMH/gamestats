@@ -7,7 +7,7 @@ los análisis devueltos por Go.
 
 Estado verificado: seis partidas propias, 50 eventos aceptados y 60 resultados
 comparados con expectativas independientes, utilizando Go y Scala reales.
-Docker, CI/CD y deployment siguen pendientes.
+La ejecución Docker se documenta al final; CI/CD y deployment siguen pendientes.
 
 ## Requisitos y arranque
 
@@ -286,8 +286,37 @@ Cada partida del simulador debe tener un único productor durante la prueba.
 
 La verificación depende de las versiones de perfiles documentadas.
 No hay persistencia, reanudación, idempotencia, seed, registro dinámico,
-notificaciones push ni garantías exactamente una vez. No se implementaron
-Docker, CI/CD o deployment.
+notificaciones push ni garantías exactamente una vez. CI/CD y deployment
+siguen pendientes.
 
-Siguiente tarea: contenerización de Go, Scala y simulador e integración
-mediante Docker Compose, con arranque verificable y configuración por entorno.
+La implementación 6 incorpora Docker Compose verificado para los tres componentes,
+como se describe a continuación. Siguiente tarea: CI/CD.
+
+## Ejecución como tarea Docker
+
+Desde la raíz, con Docker y Compose:
+
+~~~sh
+docker compose up -d --build
+docker compose run --rm simulator --run-id docker-demo-01
+docker compose run --rm simulator --mode negative --run-id docker-negative-01
+docker compose run --rm simulator --run-id docker-demo-02
+~~~
+
+No se necesita Go en el anfitrión. La imagen multietapa contiene solo el
+ejecutable y runtime Alpine; usuario 10001:10001. Compose mantiene
+--go-url http://go-ingestion:8080 en entrypoint, incluso cuando run reemplaza
+el command con los argumentos proporcionados. Se conservan todos los flags
+originales, incluidos --report y --verify; la verificación está habilitada
+en la demostración y el código de salida se propaga sin wrappers.
+
+El perfil tools excluye el simulador del up normal. Se espera a Go y Scala
+healthy antes de ejecutar la tarea. /reports permite evidencia interna,
+sin volumen persistente; con --rm se elimina al finalizar. Para guardar
+reportes y verificar duplicados, nuevo ID y limpieza, usar opcionalmente:
+
+~~~sh
+python docker/verify.py
+~~~
+
+[Guía Docker completa, variables y resultados ejecutados](../docs/docker.md).

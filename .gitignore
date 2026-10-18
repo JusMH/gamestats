@@ -24,3 +24,7 @@ Thumbs.db
 *.log
 /tmp/
 /data/output/
+
+# Docker verification artifacts
+/docker/evidence/
+/docker/__pycache__/

@@ -8,13 +8,13 @@
 | Scala 4A: motor funcional | Implementado | Perfiles declarativos, count/sum/avg, duración, composición y HTTP. |
 | Scala 4B: patrones y especialización | Implementado | Ventanas temporales, tablero Gato y 13 fixtures completos, motor puro/HTTP/integración. |
 | Simulador 5 | Implementado | Seis partidas propias, tres juegos, productores HTTP, fases concurrentes y verificación independiente en vivo/final. |
-| Docker y Compose | Pendiente | Próxima tarea delimitada. |
-| CI/CD y deployment | Pendiente | Etapas posteriores obligatorias. |
+| Docker y Compose 6 | Implementado y verificado | Tres imágenes, salud, red interna, tarea finita y verificación; estado ejecutado en docker.md. |
+| CI/CD y deployment | Pendiente | CI/CD es la siguiente tarea; deployment requiere una etapa posterior. |
 
 La implementación 5 no modificó lógica Go/Scala, perfiles ni fixtures.
 Documentación operativa: [Go](../go-ingestion/README.md),
 [Scala](../scala-analysis/README.md), [verificación 4B](scala-4b.md)
-y [simulador](../simulator/README.md).
+y [simulador](../simulator/README.md); ejecución de contenedores en [Docker](docker.md).
 
 ## Requisitos académicos cubiertos y pendientes
 
@@ -31,12 +31,13 @@ y [simulador](../simulator/README.md).
 | Fuente externa simulada | Módulo Go separado, dos partidas por juego y dos jugadores por partida. |
 | Simultaneidad | Workers por partida y barreras; seis solicitudes HTTP simultáneas demostradas. |
 | Pruebas de contratos e integración | 13 fixtures Scala; escenarios propios del simulador con servicios reales. |
-| Docker y ejecución integrada reproducible | Pendiente de contenerización; hoy existe script local Windows. |
+| Docker y ejecución integrada reproducible | Tres Dockerfiles multietapa y Compose; verificación y resultados en docker.md. |
 | CI/CD y deployment funcional | Pendientes. |
 | Documentación y defensa | Contratos, perfiles, fixtures, README e informes reproducibles locales. |
 
-El MVP académico completo aún requiere contenedores, CI/CD, despliegue y su
-validación final. No se da por concluido por disponer del simulador.
+El MVP académico completo aún requiere CI/CD, despliegue y su validación final.
+Docker dispone de una etapa específica de verificación; no se da por concluida
+la entrega académica por disponer de ejecución local.
 
 ## Verificación ejecutada en implementación 5
 
@@ -57,29 +58,45 @@ los fixtures como un sustituto de sus productores. Las pruebas HTTP
 guionizadas comprueban la orquestación; la integración ejecutada realiza
 realmente los cálculos en Scala.
 
-## Próxima tarea precisa: contenedores y Docker Compose
+## Implementación 6: Docker Compose
 
-1. Revisar los requisitos de compilación y ejecución: Go, JDK 21, Scala/sbt,
-   perfiles locales y variables de entorno ya existentes.
-2. Crear builds reproducibles de Go, Scala y simulador, con versiones fijadas
-   y sin copiar cachés, evidencia ni secretos del equipo de desarrollo.
-3. Configurar Compose con Go y Scala independientes, red interna y perfiles
-   montados o incluidos de manera explícita. Mantener contratos y endpoints.
-4. Ejecutar el simulador como cliente finito de la red Compose, pasando
-   go-url, run-id, verificación y ruta de evidencia.
-5. Definir salud y readiness sin asumir que orden de arranque equivale a
-   servicio listo; conservar límites/errores HTTP y cancelación.
-6. Verificar escenarios normales/negativos, resultados abiertos/finales y
-   repetición con 409 en los servicios reales dentro de contenedores.
-7. Documentar arranque, inspección, logs, ejecución del simulador y parada;
-   indicar que reiniciar Go pierde su almacenamiento en memoria.
+Se agregaron imágenes independientes multietapa, bases oficiales fijadas por
+versiones/digests y runtime sin privilegios. Scala se empaqueta con dockerStage:
+app.jar más cinco dependencias, sin sbt en runtime. No cambian perfiles,
+fixtures ni lógica Go/Scala/simulador.
 
-Criterio de salida: levantar el sistema con Compose y obtener la misma
-demostración verificada, sin instalaciones locales de Go/Scala para ejecutarla.
-No incluir CI/CD, deployment ni bases de datos dentro de esa tarea.
+Compose utiliza DNS interno, Go en loopback del anfitrión y Scala sin puerto
+publicado. El simulador es una tarea bajo demanda con el perfil tools.
+Los healthchecks reales y las condiciones service_healthy ordenan el arranque;
+las consultas analíticas del simulador verifican el puente completo.
 
-Después: CI con pruebas de los tres módulos y contratos; publicación y
-deployment acordados con el equipo; verificación remota y documentación final.
+Integración real ejecutada en Linux/amd64: dos demos de seis partidas,
+50 eventos y 60 consultas cada una; tres negativos, seis duplicados rechazados,
+perfiles ausentes rechazados y limpieza completa del proyecto de pruebas.
+
+La [guía Docker](docker.md) contiene resultados ejecutados y procedimiento
+portable: construcción, salud, demo, negativos, duplicados, otro ID y limpieza
+de un proyecto exclusivo. El script nunca declara aprobado un fallo del motor
+ni borra recursos de otros proyectos. La evidencia es local e ignorada por Git.
+
+## Próxima tarea precisa: CI/CD
+
+1. Elegir el proveedor de CI y fijar runtimes compatibles con las versiones
+   actuales, sin modificar contratos para simplificar el pipeline.
+2. Ejecutar pruebas/vet Go de ingestión y simulador, pruebas Scala,
+   verificador de fixtures y pruebas de configuración Docker.
+3. Construir las imágenes y ejecutar docker/verify.py con un proyecto exclusivo
+   de cada ejecución, conservando evidencia ante éxito o fallo.
+4. Comprobar errores esperados por su razón, no solo por salida distinta de cero;
+   mantener verificaciones de métricas y patrones habilitadas.
+5. Garantizar limpieza al cancelar y no interferir con otros trabajos de CI.
+6. Definir política de cachés/artefactos. Publicación de imágenes requiere
+   acordar registro, versiones y credenciales; no inventarlos.
+
+Criterio de salida: cada cambio ejecuta los checks de los tres módulos y una
+integración real en contenedores, con evidencia accesible y fallo explícito
+ante regresiones. Esta implementación no agrega workflows ni publica imágenes.
+Deployment remoto y su validación quedan para una tarea posterior.
 
 ## Extensiones fuera del alcance actual
 
