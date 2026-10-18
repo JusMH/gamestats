@@ -33,7 +33,8 @@ class ConfigTests(unittest.TestCase):
         result = subprocess.run(
             ["docker", "compose", "--file", str(ROOT / "compose.yaml"),
              "--profile", "tools", "config", "--format", "json"],
-            cwd=ROOT, env=env, check=True, capture_output=True, text=True, timeout=20)
+            cwd=ROOT, env=env, check=True, capture_output=True, text=True,
+            encoding="utf-8", timeout=20)
         cls.config = json.loads(result.stdout)
         cls.services = cls.config["services"]
 

@@ -98,8 +98,9 @@ MiB equivale a 1 048 576 bytes. Estos límites son validaciones, no benchmarks.
 | Componente | Límite y efecto |
 | --- | --- |
 | POST /events Go | Cuerpo de 1 MiB; exceso devuelve 400. No valida campos particulares del juego. |
-| Memoria Go | Sin límite global de partidas/eventos, expiración o paginación; incluye cerradas hasta detener Go. |
-| Cliente Go → Scala | Timeout total 5 s, sin retries ni redirecciones; respuesta máxima 8 MiB. No fija un límite al cuerpo saliente antes de construir el snapshot. |
+| Partida Go | Máximo 10 000 eventos y 8 MiB serializados, incluidos inicio, cierre, sobre y separadores. Se reserva un evento y 1 MiB para cerrar; exceso devuelve 413 sin almacenar. |
+| Memoria Go | Sin límite global de partidas, expiración o paginación; incluye cerradas hasta detener Go. |
+| Cliente Go → Scala | Timeout total 5 s, sin retries ni redirecciones; respuesta máxima 8 MiB. El administrador limita la colección aceptada al presupuesto de Scala. |
 | HTTP Scala | Petición/respuesta de 8 MiB; exceso de petición 413, respuesta demasiado grande 503. Go convierte HTTP upstream distinto de 200 en 502. |
 | Snapshot Scala | Entre 1 y 10 000 eventos; no se particiona automáticamente. |
 | Jugadores con perfil conocido | Hasta 1 000 en roster/sujetos relevantes; no hay un catálogo de jugadores en Go. |
@@ -109,10 +110,16 @@ MiB equivale a 1 048 576 bytes. Estos límites son validaciones, no benchmarks.
 | JSON Scala | Profundidad 64, cadenas 65 536 caracteres, token numérico 128 caracteres; precisión decimal 128 y escala absoluta hasta 1 000. Rechaza claves repetidas, también dentro de data. |
 | Simulador | Concurrencia configurable 2–16; timeout por solicitud y duración total; respuestas de hasta 8 MiB. |
 
-Go puede aceptar eventos cuyo snapshot acumulado exceda después los límites de
-Scala. Aceptación de ingestión no garantiza que una partida de cualquier tamaño
-sea analizable. Copias completas y polling tienen coste creciente; no se promete
-rendimiento para cientos de miles de eventos sin mediciones.
+Go mide cada evento con la misma serialización JSON del cliente HTTP y mantiene
+un contador por partida bajo su mutex. Incluye escapes y usa el sobre closed,
+dos bytes mayor que open. La comprobación, el almacenamiento y el índice de IDs
+se actualizan juntos; no vuelve a serializar toda la partida por cada evento.
+La política detallada y la reserva de cierre están en [integración](integration-api.md).
+
+La alineación cubre cantidad y bytes. Scala conserva la validación de datos,
+límites del parser JSON, jugadores y salidas; aceptar el sobre Go no certifica
+la semántica del juego. Copias completas y polling tienen coste creciente;
+no se promete rendimiento masivo sin mediciones.
 
 ## Construcción, publicación y deployment
 
@@ -126,8 +133,8 @@ Compose utiliza DNS interno, healthchecks y usuarios sin privilegios; Go publica
 127.0.0.1:8080 y Scala no publica su puerto al anfitrión. El deployment elegido
 es local, Linux/amd64 con Docker Desktop o motor compatible. GHCR distribuye
 imágenes; GitHub Release distribuye el ZIP por digest; ninguno aloja una API
-remota. Ver [distribución](academic-distribution.md) para la evidencia y el fallo
-conocido de Finalize, y [matriz académica](academic-audit.md).
+remota. Ver [distribución](academic-distribution.md) para la evidencia actual y la historia de Finalize, y
+[verificación de entrega](verificacion-entrega.md).
 
 ## Garantías que no ofrece el sistema
 

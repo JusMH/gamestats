@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -30,7 +28,7 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 	concurrency := flags.Int("concurrency", 6, "maximum active matches, 2..16; batches synchronize checkpoints")
 	timeout := flags.Duration("timeout", 10*time.Second, "timeout per HTTP request, no retries")
 	duration := flags.Duration("max-duration", 2*time.Minute, "maximum total run duration")
-	reportPath := flags.String("report", "", "optional JSON evidence file (includes results, errors and concurrency peak)")
+	reportPath := flags.String("report", "", "optional JSON evidence file; keeps the current report and two previous reports")
 	flags.Usage = func() {
 		fmt.Fprintln(errout, "Usage: simulator [options]\nRequires running Go and Scala services. No games, servers or profiles are started or modified.")
 		flags.PrintDefaults()
@@ -94,14 +92,4 @@ func run(ctx context.Context, args []string, out, errout io.Writer) int {
 		fmt.Fprintln(out, "PASS: all selected scenario expectations verified")
 	}
 	return 0
-}
-func writeReport(path string, value any) error {
-	data, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, append(data, '\n'), 0644)
 }

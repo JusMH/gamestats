@@ -1,5 +1,11 @@
 # Auditoría técnica y documental final
 
+> Registro histórico de la auditoría de v1.0.0. Después de su corte se reparó
+> Finalize y se publicó v1.0.1 con automatización completa. Consultar
+> [el estado de distribución](academic-distribution.md) y [la hoja de ruta](implementation-roadmap.md)
+> para el estado actual. Los resultados y pendientes de este informe describen
+> su momento de revisión y no se reescriben como si fueran verificaciones nuevas.
+
 Corte: **18 de octubre de 2026**. Repositorio JusMH/gamestats, rama de revisión
 docs/final-academic-audit, base main/origin/main
 7782fa9b4c88a73317a3b0b1eb51d0fbacca5d15. La auditoría modifica solamente

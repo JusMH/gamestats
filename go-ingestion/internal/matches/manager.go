@@ -13,6 +13,7 @@ var (
 	ErrDuplicate      = errors.New("eventId already exists in this match")
 	ErrAlreadyStarted = errors.New("match has already been started")
 	ErrClosed         = errors.New("match is closed")
+	ErrLimit          = errors.New("match limit exceeded: maximum 10000 events and 8 MiB; reserve one event and 1 MiB for MATCH_FINISHED")
 )
 
 type key struct{ gameID, matchID string }
@@ -22,6 +23,7 @@ type match struct {
 	closed bool
 	events []events.Event
 	ids    map[string]struct{}
+	budget snapshotBudget
 }
 
 // Manager must be constructed with NewManager and must not be copied.
@@ -51,12 +53,18 @@ func (m *Manager) Accept(event events.Event) error {
 	if event.Type == "MATCH_STARTED" {
 		// Prepare ownership before locking the shared registry.
 		first := cloneEvent(event)
+		budget, budgetErr := newSnapshotBudget(first)
 		m.mu.Lock()
 		current = m.matches[k]
 		if current == nil {
+			if budgetErr != nil {
+				m.mu.Unlock()
+				return budgetErr
+			}
 			m.matches[k] = &match{
 				events: []events.Event{first},
 				ids:    map[string]struct{}{event.EventID: {}},
+				budget: budget,
 			}
 			m.mu.Unlock()
 			return nil
@@ -83,8 +91,17 @@ func (m *Manager) Accept(event events.Event) error {
 	if event.Type == "MATCH_STARTED" {
 		return ErrAlreadyStarted
 	}
+	owned := cloneEvent(event)
+	size, err := encodedSize(owned)
+	if err != nil {
+		return err
+	}
+	if !current.budget.fits(len(current.events), size, event.Type == "MATCH_FINISHED") {
+		return ErrLimit
+	}
 
-	current.events = append(current.events, cloneEvent(event))
+	current.events = append(current.events, owned)
+	current.budget.eventBytes += size
 	current.ids[event.EventID] = struct{}{}
 	if event.Type == "MATCH_FINISHED" {
 		current.closed = true

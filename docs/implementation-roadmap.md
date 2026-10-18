@@ -1,58 +1,51 @@
 # Estado y hoja de ruta de GameStats
 
-Corte documental: 18 de octubre de 2026. La [auditoría](academic-audit.md)
-identifica fuentes, evidencias y limitaciones; no sustituye la evaluación docente.
+Estado documentado de la versión revisada: 18 de octubre de 2026.
+El enunciado y su aceptación corresponden al docente; la documentación distingue
+las verificaciones ejecutadas de las decisiones pendientes.
 
-## Estado verificado
+## Versión publicada v1.0.1
 
-| Etapa | Estado presente | Evidencia |
+| Área | Estado | Evidencia |
 | --- | --- | --- |
-| Go 1–3 | Implementado | Sobre v1, memoria por (gameId, matchId), mutexes, lifecycle, snapshots y HTTP a Scala. |
-| Scala 4A | Implementado | Perfiles, motor puro count/sum/avg, duración y composición. [Informe histórico](scala-4a.md). |
-| Scala 4B | Implementado | Ventanas y tablero; 143 pruebas Scala y 13 fixtures en CI. [Informe histórico](scala-4b.md). |
-| Simulador 5 | Implementado | Seis escenarios propios, 50 eventos y 60 consultas por demo. [Manual](../simulator/README.md). |
-| Docker 6 | Implementado y verificado | Tres imágenes, servicios healthy, red interna y limpieza. [Guía](docker.md). |
-| CI 7 | Aprobada | [Run 39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511), commit 7782fa9b4c88a73317a3b0b1eb51d0fbacca5d15; ambos detectores Go race. |
-| Distribución 8 | Publicada y evaluación aprobada; automatización parcial | [v1.0.0](https://github.com/JusMH/gamestats/releases/tag/v1.0.0), imágenes públicas, ZIP evaluado. Finalize falló y requirió recuperación manual. |
-| Deployment académico local | Ejecutado con Compose | Evaluación anónima desde ZIP, servicios reales y simulador; Linux/amd64. |
-| Deployment remoto | No implementado | Fuera de la modalidad elegida; no hay alojamiento en nube. |
+| Go 1–3 | Implementado | Sobre v1, partidas concurrentes, snapshots y puente HTTP. |
+| Scala 4A/4B | Implementado | Motor funcional, métricas, ventanas, tablero y 143 pruebas en CI. |
+| Simulador 5 | Implementado | Seis escenarios, 50 eventos y 60 consultas por demostración. |
+| Docker 6 | Verificado | Tres imágenes, servicios healthy y pruebas integradas. |
+| CI | Aprobada para el commit publicado | [39114936260](https://github.com/JusMH/gamestats/actions/runs/39114936260), con los seis trabajos correctos. |
+| Distribución | Publicada con automatización completa | [39115113580](https://github.com/JusMH/gamestats/actions/runs/39115113580), incluida finalización. |
+| Deployment | Local con Compose | [Release v1.0.1](https://github.com/JusMH/gamestats/releases/tag/v1.0.1), con imágenes y ZIP evaluados. |
 
-El enunciado exige un entorno de deployment definido por el equipo, no impone
-un proveedor remoto. Se eligió Docker Compose local: compilación reproducible,
-contenedores, CI, publicación GHCR, distribución por Release e instalación
-verificada son pasos distintos. El fallo real de Finalize impide presentar el
-workflow de publicación completo como verde, aunque el paquete evaluado sí existe.
+Commit publicado: `2d32836a8da097de9a43c431d79a2bcea675c5cf`.
+La reparación de Finalize se incorporó después de la auditoría histórica de
+v1.0.0. No figura como tarea actual. La [auditoría](academic-audit.md) conserva
+el fallo y la recuperación de aquella versión, sin reescribir su evidencia.
 
-## Próxima tarea necesaria: reparar Finalize en un cambio separado
+## Ajustes posteriores en esta rama
 
-1. Reproducir el fallo de confirmación de borrador observado en la ejecución
-   [39105352591, intento 2](https://github.com/JusMH/gamestats/actions/runs/39105352591/attempts/2):
-   `Draft creation not confirmed; retry failed job`.
-2. Corregir y probar la reconciliación del borrador mediante identificadores de
-   GitHub, incluyendo respuesta perdida, tag provisional y reanudación segura.
-   La causa interna exacta aún requiere esa investigación; no se cambia código
-   durante la auditoría documental.
-3. Mantener aprobación humana, CI exacta, digests y evaluación antes de publicar.
-   Crear una nueva versión solo después de revisión y autorización. No mover,
-   reconstruir, sobrescribir ni volver a finalizar v1.0.0 ciegamente.
-4. Comprobar que el workflow completo termina success y que los adjuntos
-   publicados son los mismos que pasaron evaluación. Las pruebas locales
-   sintéticas no bastan para certificar este paso remoto.
+1. Referencias de instalación y estado actualizadas a v1.0.1.
+2. Documentación separada del historial de v1.0.0 y del estado posterior.
+3. Ruta sin tildes documentada para construir con Docker en este equipo.
+4. Decodificación UTF-8 explícita del JSON de Compose en las pruebas.
+5. [Guía CMD](windows-cmd.md) y lanzador Scala equivalente para Windows.
+6. Informes limitados al actual y dos anteriores por destino estable `--report`.
 
-## Consolidación documental y siguientes decisiones
+No se publicará otro paquete automáticamente por estos cambios. Un PR hacia
+main dispara CI; publicar una nueva versión sigue requiriendo decisión humana
+y el workflow manual. Los artefactos v1.0.1 conservan sus contenidos originales.
 
-Esta revisión corrige el estado presente, conserva informes históricos y añade
-una guía para conectar juegos externos. No modifica v1.0.0 ni su ZIP. Una futura
-versión documental puede incorporar estas correcciones y retirar el comentario
-obsoleto de la plantilla Compose de evaluación, en una tarea separada revisada.
+## Alineación de límites implementada
 
-La integración con juegos cuya IA use Prolog es **FUTURA**; ver
-[integrar nuevos juegos](integrating-new-games.md). No se implementa aquí.
+Go limita la partida a 10 000 eventos y 8 MiB serializados, igual que Scala.
+Reserva un evento y 1 MiB para el cierre y rechaza excesos con 413 sin mutación.
+Las comprobaciones se realizan bajo el bloqueo de la partida; se prueban las
+fronteras exactas, la concurrencia y el análisis abierto/cerrado con Scala real.
+Consultar [política HTTP](integration-api.md#capacidad-y-reserva-para-cerrar) y
+[verificación de cada entregable](verificacion-entrega.md).
 
-Antes de escalar se necesitan mediciones y decisiones de retención/límites:
-Go almacena sin límite global, Scala analiza como máximo 10 000 eventos y
-8 MiB por petición. No se prometen prestaciones no medidas. Permanecen fuera
-del alcance persistencia distribuida, Kafka, motor universal, ajedrez/damas
-completos, GUI, equipos/torneos, procesamiento incremental y WebSockets/SSE.
-min/max tampoco forma parte de las capacidades actuales. Nuevos mapeos a
-count/sum/avg ya pueden incorporarse mediante perfiles, con reinicio de Scala.
+## Alcance conservado
+
+No se añaden persistencia, retención automática de partidas, caché, push,
+alojamiento remoto, nuevos juegos, reglas universales ni base de datos.
+La retención de informes del simulador no cambia la memoria de Go ni el
+análisis Scala. La posible integración Prolog sigue siendo futura.

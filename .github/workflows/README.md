@@ -15,7 +15,7 @@ independientes; un fallo no cancela las comprobaciones de los otros módulos.
 | Go / go-ingestion | build, test, vet y test -race | 15 min |
 | Go / simulator | build, test, vet y test -race | 15 min |
 | Scala / engine, HTTP and packaging | compile, MUnit, dockerStage y check-stage.py | 25 min |
-| Contracts / fixtures, infrastructure and workflow | actionlint, Compose, fixtures y 16 pruebas unittest | 15 min |
+| Contracts / fixtures, infrastructure and workflow | actionlint, Compose, fixtures y suites de infraestructura/distribución (16/25) | 15 min |
 | Docker / real multigame integration | docker/verify.py, evidencia y limpieza | 75 min |
 | CI result | Resumen y comprobación de éxito de todos los trabajos anteriores | 5 min |
 
@@ -32,6 +32,9 @@ Exige exactamente 16 pruebas, incluso después de ejecutarlas: cero pruebas o
 un cambio no revisado de su cantidad falla. Cuando se amplíe esa suite, revisar
 explícitamente este guard. El comando equivalente habitual sigue siendo:
 python -m unittest discover -s docker -p "test_*.py" -v.
+
+El mismo trabajo descubre también las 25 pruebas de distribución y exige
+su cantidad revisada. Ese guard se incorporó en el PR #15; no se modifica aquí.
 
 CI result falla si cualquier dependencia termina failed, cancelled o skipped.
 No hay continue-on-error ni reintentos indiscriminados. La cola por PR/referencia
@@ -130,11 +133,11 @@ python docker/verify.py --project ci-local-01 --run-id ci-local-01 --evidence do
 
 Usar un proyecto/directorio de evidencia nuevo por ejecución. El procedimiento
 Docker requiere Docker Linux; no requiere runtimes Go/Scala en el anfitrión.
-Para Scala en Windows:
+Para Scala en Windows CMD, con JAVA_HOME apuntando a JDK 21:
 
-```powershell
+```cmd
 cd scala-analysis
-.\sbtw.ps1 compile test dockerStage
+sbtw.cmd compile test dockerStage
 cd ..
 python docker/check-stage.py
 ```
@@ -174,36 +177,28 @@ registro; ya no representan una primera ejecución remota pendiente.
 CI result sigue siendo la propuesta de check obligatorio, sin cambiar reglas
 del repositorio. ci.yml mantiene contenidos y permisos de solo lectura.
 
-## Publicación académica independiente — Etapa 8
+## Publicación académica independiente
 
-[academic-release.yml](academic-release.yml) se inicia manualmente mediante
-workflow_dispatch desde main, con versión, SHA completo revisado y confirmación
-`PUBLICAR v1.0.0`. Exige CI exacta antes de publicar imágenes GHCR. No se crea
-previamente un tag o Release. packages: write solo corresponde a images;
-contents: write solo a finalize. CI permanece sin cambios y con permisos de lectura.
+El [run CI 39114936260](https://github.com/JusMH/gamestats/actions/runs/39114936260)
+del commit `2d32836a8da097de9a43c431d79a2bcea675c5cf` aprobó sus seis trabajos.
+La [publicación 39115113580](https://github.com/JusMH/gamestats/actions/runs/39115113580)
+del mismo commit completó todos sus trabajos, incluida la finalización, y
+publicó [v1.0.1](https://github.com/JusMH/gamestats/releases/tag/v1.0.1).
 
-La secuencia diseñada es evaluación anónima → borrador → adjuntos verificados
-→ publicación final, compatible con Releases inmutables. **La ejecución real
-no completó Finalize**; no debe confundirse el diseño o sus pruebas locales con
-un éxito de ese job remoto.
+[academic-release.yml](academic-release.yml) sigue siendo manual desde main.
+Requiere versión, SHA completo aprobado y confirmación `PUBLICAR ` seguida
+de la versión elegida. Un PR o un merge dispara CI, no otra publicación.
+No se crea un paquete nuevo ni se cambian permisos, tags o adjuntos en esta rama.
 
-La [guía técnica](../../docs/academic-distribution.md) registra los digests,
-permisos y recuperación. En el [run 39105352591, intento 2](https://github.com/JusMH/gamestats/actions/runs/39105352591/attempts/2),
-approval/images/evaluation pasaron y finalize falló con
-`Draft creation not confirmed; retry failed job`. Se publicó v1.0.0 mediante
-recuperación manual, con el mismo ZIP que pasó evaluación. El workflow completo
-terminó failure. El [run CI 39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511)
-del commit publicado sí terminó success; son workflows distintos.
+El fallo de Finalize de v1.0.0 y su recuperación manual se mantienen como
+[historia](../../docs/academic-audit.md). Su reparación y la suite de 25 pruebas
+de distribución ya están incorporadas. No es necesario repetir esa reparación.
+Para futuras publicaciones, conservar la evaluación y aprobación explícitas;
+no reconstruir ni reemplazar versiones existentes.
 
-Tras hacer públicos los paquetes, Re-run failed jobs reutilizó el artefacto
-release-images-39105352591-1 y sus digests, sin reconstrucción ni push. No usar
-Re-run all jobs para sobrescribir una versión. La Release manual carece del
-marcador lógico esperado por Finalize; no reintentarlo ciegamente sobre v1.0.0.
-
-Las 24 pruebas locales de distribución complementan las 16 de infraestructura,
-pero no certificaron la creación real del borrador. Es necesario reparar y
-volver a comprobar Finalize en un cambio separado antes de otra publicación.
-La distribución ya permite deployment **local** con Compose; no hay alojamiento remoto.
+La [distribución actual](../../docs/academic-distribution.md) documenta los
+adjuntos, hashes, digests y la separación entre el paquete publicado y los
+ajustes posteriores del repositorio. El deployment sigue siendo local con Compose.
 
 ## Referencias oficiales
 
