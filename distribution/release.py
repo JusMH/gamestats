@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 import zipfile
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
@@ -234,8 +235,58 @@ def publish(record_path, output):
 
 
 
-def gh(*args):
-    subprocess.run(["gh", *args, "--repo", REPOSITORY], check=True)
+def github_write_json(method, path, payload):
+    """Write via authenticated REST and use the returned resource ID, even for drafts."""
+    token = os.environ.get("GH_TOKEN")
+    require(bool(token), "GH_TOKEN is required for Release mutations")
+    request = Request(
+        "https://api.github.com/" + path,
+        data=json.dumps(payload).encode("utf-8"), method=method,
+        headers={"Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/json",
+                 "X-GitHub-Api-Version": "2022-11-28",
+                 "User-Agent": "gamestats-release"})
+    with urlopen(request, timeout=30) as response:
+        return json.load(response)
+
+
+def create_draft_release(tag, revision, notes):
+    created = github_write_json("POST", f"repos/{REPOSITORY}/releases", {
+        "tag_name": tag, "target_commitish": revision,
+        "name": "GameStats " + tag, "body": notes,
+        "draft": True, "prerelease": False,
+    })
+    require(isinstance(created.get("id"), int) and
+            created.get("tag_name") == tag and created.get("draft") is True and
+            created.get("target_commitish") == revision,
+            "Draft response is incomplete or mismatched; inspect GitHub before retry")
+    return created
+
+
+def upload_asset(release_id, path):
+    token = os.environ.get("GH_TOKEN")
+    require(bool(token), "GH_TOKEN is required to upload Release assets")
+    request = Request(
+        f"https://uploads.github.com/repos/{REPOSITORY}/releases/{release_id}/assets?"
+        + urlencode({"name": path.name}),
+        data=path.read_bytes(), method="POST",
+        headers={"Authorization": "Bearer " + token,
+                 "Accept": "application/vnd.github+json",
+                 "Content-Type": "application/octet-stream",
+                 "X-GitHub-Api-Version": "2022-11-28",
+                 "User-Agent": "gamestats-release"})
+    with urlopen(request, timeout=60) as response:
+        uploaded = json.load(response)
+    require(isinstance(uploaded.get("id"), int) and uploaded.get("name") == path.name and
+            uploaded.get("state") == "uploaded",
+            "Asset upload response is incomplete; inspect GitHub before retry")
+    return uploaded
+
+
+def publish_draft(release_id, revision):
+    return github_write_json("PATCH", f"repos/{REPOSITORY}/releases/{release_id}",
+                             {"draft": False, "target_commitish": revision})
 
 
 def remote_tag_revision(tag):
@@ -248,10 +299,31 @@ def remote_tag_revision(tag):
     raise ValueError("Tag indirection limit exceeded")
 
 
-def asset_matches(tag, path):
-    with tempfile.TemporaryDirectory(prefix="gamestats-release-asset-") as temporary:
-        gh("release", "download", tag, "--pattern", path.name, "--dir", temporary)
-        return hashlib.sha256((Path(temporary) / path.name).read_bytes()).digest() == hashlib.sha256(path.read_bytes()).digest()
+def asset_matches(asset, path):
+    """Download an attached asset by ID, including a draft without a visible tag."""
+    token = os.environ.get("GH_TOKEN")
+    require(bool(token), "GH_TOKEN is required to verify Release assets")
+    expected = hashlib.sha256(path.read_bytes()).hexdigest()
+    if asset.get("digest") is not None:
+        require(asset["digest"] == "sha256:" + expected,
+                "Release asset digest differs: " + path.name)
+    request = Request(
+        f"https://api.github.com/repos/{REPOSITORY}/releases/assets/{asset['id']}",
+        headers={"Authorization": "Bearer " + token,
+                 "Accept": "application/octet-stream",
+                 "X-GitHub-Api-Version": "2022-11-28",
+                 "User-Agent": "gamestats-release"})
+    result = hashlib.sha256()
+    with urlopen(request, timeout=60) as response:
+        media_type = response.headers.get("Content-Type", "").split(";", 1)[0].lower()
+        require(media_type != "application/json",
+                "Asset API returned metadata rather than bytes: " + path.name)
+        while True:
+            chunk = response.read(1024 * 1024)
+            if not chunk:
+                break
+            result.update(chunk)
+    return result.hexdigest() == expected
 
 
 def finalize(directory):
@@ -277,14 +349,12 @@ def finalize(directory):
     notes = f"GameStats academic distribution\nPublication run: {os.environ['GITHUB_RUN_ID']}\nRevision: {revision}\n"
     release = find_release(tag)
     if release is None:
-        require(optional_api(f"repos/{REPOSITORY}/git/ref/tags/{tag}") is None, "Tag appeared before finalization")
-        with tempfile.TemporaryDirectory() as temporary:
-            note_file = Path(temporary) / "notes.md"
-            note_file.write_text(notes, encoding="utf-8")
-            gh("release", "create", tag, "--draft", "--target", revision,
-               "--title", "GameStats " + tag, "--notes-file", str(note_file))
-        release = find_release(tag)
-    require(release is not None, "Draft creation not confirmed; retry failed job")
+        require(optional_api(f"repos/{REPOSITORY}/git/ref/tags/{tag}") is None,
+                "Tag appeared before finalization")
+        # The POST response is authoritative: GitHub may not list a new draft
+        # immediately, and draft tags may not yet exist.
+        release = create_draft_release(tag, revision, notes)
+    require(release is not None, "Release could not be resolved; inspect before retry")
     require(release.get("body", "").replace("\r\n", "\n").strip() == notes.strip(),
             "Release belongs to another publication; refusing to mutate it")
     require(not release.get("prerelease"), "Unexpected prerelease")
@@ -295,20 +365,40 @@ def finalize(directory):
             require(remote_tag_revision(tag) == revision, "Draft tag targets another commit")
     else:
         require(remote_tag_revision(tag) == revision, "Published tag targets another commit")
-    existing = {row["name"] for row in release["assets"]}
-    require(existing <= {path.name for path in files}, "Unexpected Release assets; review manually")
+    assets = {row["name"]: row for row in release["assets"]}
+    require(len(assets) == len(release["assets"]), "Duplicate Release asset names; review manually")
+    require(set(assets) <= {path.name for path in files}, "Unexpected Release assets; review manually")
     for path in files:
-        if path.name in existing:
-            require(asset_matches(tag, path), "Existing asset differs; never overwrite: " + path.name)
+        if path.name in assets:
+            require(asset_matches(assets[path.name], path),
+                    "Existing asset differs; never overwrite: " + path.name)
         else:
             require(release["draft"], "Published Release is incomplete; immutable assets cannot be added")
-            gh("release", "upload", tag, str(path))
-    # Verify every attached byte before the irreversible publication operation.
-    require(all(asset_matches(tag, path) for path in files), "Attached assets failed checksum verification")
+            assets[path.name] = upload_asset(release["id"], path)
+    # Verify all attached bytes by asset ID before publishing. Draft tags need
+    # not be visible through the list or tag APIs during this stage.
+    require(all(asset_matches(assets[path.name], path) for path in files),
+            "Attached assets failed checksum verification")
     if release["draft"]:
-        gh("release", "edit", tag, "--draft=false", "--target", revision)
+        publish_draft(release["id"], revision)
     published = api(f"repos/{REPOSITORY}/releases/{release['id']}")
-    require(not published["draft"] and remote_tag_revision(tag) == revision, "Release publication not confirmed")
+    require(not published["draft"] and published["tag_name"] == tag,
+            "Release publication not confirmed")
+    # Creating the remote tag is eventually consistent; never repeat publication.
+    for attempt in range(6):
+        try:
+            tag_revision = remote_tag_revision(tag)
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+            tag_revision = None
+        if tag_revision == revision:
+            break
+        if tag_revision is not None:
+            raise ValueError("Published tag targets the wrong commit")
+        time.sleep(min(2 ** attempt, 8))
+    else:
+        raise ValueError("Published tag is not visible yet; inspect before retry")
     require({row["name"] for row in published["assets"]} == {p.name for p in files}, "Incomplete published Release")
     (directory / "release-finalization.json").write_text(json.dumps({
         "status": "passed", "version": tag, "revision": revision,

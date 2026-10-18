@@ -218,43 +218,68 @@ class FinalizationTests(unittest.TestCase):
                        patch.object(release,"remote_tag_revision",return_value="0"*40)]:
             active.start();self.addCleanup(active.stop)
 
-    def test_draft_assets_then_publish_in_that_order(self):
-        with patch.object(release,"find_release",side_effect=[None,self.draft]), \
-                patch.object(release,"optional_api",return_value=None), \
-                patch.object(release,"api",return_value=self.published), \
-                patch.object(release,"asset_matches",return_value=True), patch.object(release,"gh") as command:
+    def test_draft_creation_uses_returned_id_even_if_listing_lags(self):
+        new_draft = dict(self.draft, tag_name="v1.0.0", assets=[])
+        downloaded = []
+        with patch.object(release, "find_release", return_value=None) as finder, \
+             patch.object(release, "optional_api", return_value=None), \
+             patch.object(release, "create_draft_release", return_value=new_draft) as create, \
+             patch.object(release, "upload_asset", side_effect=lambda rid, path: {
+                 "id": len(downloaded) + 10, "name": path.name, "state": "uploaded"
+             }) as upload, \
+             patch.object(release, "asset_matches", side_effect=lambda asset, path: asset["name"] == path.name), \
+             patch.object(release, "publish_draft", return_value=self.published) as publish, \
+             patch.object(release, "api", return_value=dict(self.published, tag_name="v1.0.0")):
             release.finalize(self.folder)
-        calls=[c.args for c in command.call_args_list]
-        self.assertIn("--draft",calls[0])
-        self.assertEqual([c[1] for c in calls],["create","upload","upload","upload","edit"])
-        self.assertIn("--draft=false",calls[-1])
-        evidence=json.loads((self.folder/"release-finalization.json").read_text())
-        self.assertTrue(evidence["immutable"] and evidence["assetsVerified"])
+        finder.assert_called_once_with("v1.0.0")
+        create.assert_called_once()
+        self.assertEqual(upload.call_count, 3)
+        self.assertTrue(all(c.args[0] == 1 for c in upload.call_args_list))
+        publish.assert_called_once_with(1, "0" * 40)
 
     def test_resume_partial_draft_uploads_only_missing_assets(self):
-        draft=dict(self.draft,assets=[{"name":"images.json"}])
-        with patch.object(release,"find_release",return_value=draft), \
-                patch.object(release,"optional_api",return_value=None), \
-                patch.object(release,"api",return_value=self.published), \
-                patch.object(release,"asset_matches",return_value=True), patch.object(release,"gh") as command:
+        draft = dict(self.draft, assets=[{"id": 11, "name": "images.json"}])
+        with patch.object(release, "find_release", return_value=draft), \
+             patch.object(release, "asset_matches", return_value=True), \
+             patch.object(release, "upload_asset", side_effect=lambda rid, path: {
+                 "id": 12, "name": path.name, "state": "uploaded"
+             }) as upload, \
+             patch.object(release, "publish_draft") as publish, \
+             patch.object(release, "api", return_value=dict(self.published, tag_name="v1.0.0")):
             release.finalize(self.folder)
-        self.assertEqual([c.args[1] for c in command.call_args_list],["upload","upload","edit"])
-        self.assertFalse(any(c.args[1] in ["create","push","build"] for c in command.call_args_list))
+        self.assertEqual(upload.call_count, 2)
+        publish.assert_called_once_with(1, "0" * 40)
 
     def test_published_immutable_release_retry_is_read_only(self):
-        with patch.object(release,"find_release",return_value=self.published), \
-                patch.object(release,"api",return_value=self.published), \
-                patch.object(release,"asset_matches",return_value=True), patch.object(release,"gh") as command:
+        with patch.object(release, "find_release", return_value=self.published), \
+             patch.object(release, "api", return_value=dict(self.published, tag_name="v1.0.0")), \
+             patch.object(release, "asset_matches", return_value=True), \
+             patch.object(release, "upload_asset") as upload, \
+             patch.object(release, "publish_draft") as publish:
             release.finalize(self.folder)
-        command.assert_not_called()
+        upload.assert_not_called()
+        publish.assert_not_called()
 
     def test_mismatched_existing_asset_is_never_overwritten(self):
-        draft=dict(self.draft,assets=[{"name":name} for name in self.names])
-        with patch.object(release,"find_release",return_value=draft), \
-                patch.object(release,"optional_api",return_value=None), \
-                patch.object(release,"asset_matches",return_value=False), patch.object(release,"gh") as command:
-            with self.assertRaisesRegex(ValueError,"never overwrite"):release.finalize(self.folder)
-        command.assert_not_called()
+        draft = dict(self.draft, assets=[{"id": 11, "name": name} for name in self.names])
+        with patch.object(release, "find_release", return_value=draft), \
+             patch.object(release, "asset_matches", return_value=False), \
+             patch.object(release, "upload_asset") as upload, \
+             patch.object(release, "publish_draft") as publish:
+            with self.assertRaisesRegex(ValueError, "never overwrite"):
+                release.finalize(self.folder)
+        upload.assert_not_called()
+        publish.assert_not_called()
+
+    def test_unexpected_asset_refuses_publication(self):
+        draft = dict(self.draft, assets=[{"id": 11, "name": "unexpected.bin"}])
+        with patch.object(release, "find_release", return_value=draft), \
+             patch.object(release, "upload_asset") as upload, \
+             patch.object(release, "publish_draft") as publish:
+            with self.assertRaisesRegex(ValueError, "Unexpected Release assets"):
+                release.finalize(self.folder)
+        upload.assert_not_called()
+        publish.assert_not_called()
 
     def test_anonymous_verification_required_before_creating_release(self):
         self.summary["anonymousPulls"]=False
