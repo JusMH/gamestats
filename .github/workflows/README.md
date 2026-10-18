@@ -43,7 +43,7 @@ no cancela una integración anterior mientras limpia sus recursos.
 | --- | --- |
 | Runner | ubuntu-24.04 |
 | Go | 1.26.5, GOTOOLCHAIN=local |
-| JDK | Eclipse Temurin 21.0.12+8 |
+| JDK | Eclipse Temurin 21; setup-java resuelve la actualización disponible, sin fijar patch/build |
 | Scala / sbt | 3.3.7 / 1.11.7, definidos por el módulo |
 | Python | 3.12, resuelto por setup-python |
 | actionlint | 1.7.12, go run con versión fija y verificación normal de módulos Go |
