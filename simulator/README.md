@@ -179,6 +179,36 @@ go run ./cmd/simulator --mode negative --run-id negativos-01 --report evidence/n
 Son partidas con nombres distintos de la demostración normal. Este modo
 siempre verifica; no admite --verify=false.
 
+## Informes acotados en las fuentes posteriores a v1.0.1
+
+Con `--report evidence/reporte.json`, cada escritura conserva como máximo:
+
+- reporte.json: ejecución más reciente.
+- reporte.1.json: anterior.
+- reporte.2.json: la más antigua conservada.
+
+Se guarda completamente el nuevo JSON antes de rotar y solo se retira el
+cuarto informe después de instalar el nuevo y sus dos respaldos. Si falla
+una operación de publicación, se intenta restaurar los archivos anteriores;
+si el sistema impide restaurarlos, el error identifica el directorio temporal
+que conserva los respaldos recuperables. Un error de serialización no rota nada.
+Se rechazan directorios/enlaces como archivos de historial y escrituras
+simultáneas sobre el mismo destino. Una interrupción abrupta puede dejar
+`reporte.json.lock`; antes de retirarlo manualmente, comprobar que no siga
+activo un proceso que escriba ese informe.
+
+Se retienen las tres últimas escrituras correctas del archivo, sean informes
+de simulaciones aprobadas o fallidas. No se conserva indefinidamente el último
+éxito. El límite es por nombre estable de destino, no por toda la carpeta:
+otros informes y archivos no se borran. Si no se usa --report, no se escribe.
+La [guía CMD](../docs/windows-cmd.md#informes-con-límite-de-tres) muestra cómo
+comprobar cuatro ejecuciones y los tres resultados conservados.
+
+Las imágenes y el ZIP publicados v1.0.1 no incluyen este cambio; se prueba
+ejecutando o construyendo estas fuentes. En una tarea Docker --rm, los informes
+internos se eliminan con su contenedor si no se proporciona almacenamiento
+persistente; esta rama no añade volúmenes ni cambia Compose.
+
 ## Repetir una demostración
 
 Go retiene partidas en memoria. Una nueva ejecución debe usar otro --run-id:
@@ -205,7 +235,7 @@ go vet ./...
 go test -race ./...
 ~~~
 
-Resultado ejecutado: **31 funciones de prueba, 90 casos terminales aprobados,
+Resultado histórico de la Etapa 5: **31 funciones de prueba, 90 casos terminales aprobados,
 0 fallos**. El conteo de casos no duplica las suites padre de subtests.
 Cubren determinismo, sobres, lifecycle, orden, aislamiento, barreras con seis
 solicitudes simultáneas, límites de concurrencia, fallos independientes,
@@ -329,7 +359,7 @@ python docker/verify.py
 
 ## Evidencia vigente de concurrencia
 
-CI de main [39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511)
+CI del commit publicado v1.0.1 [39114936260](https://github.com/JusMH/gamestats/actions/runs/39114936260)
 aprobó build/test/vet y el detector de carreras de ambos módulos en Linux.
 Esto resuelve la comprobación pendiente del entorno Windows, sin garantizar
 ausencia de todos los defectos posibles. Ver [límites actuales](../docs/architecture.md#límites-comprobados-en-código).

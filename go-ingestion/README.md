@@ -104,6 +104,7 @@ incluyendo solicitudes a un servidor `httptest.NewServer`.
 | POST /events, JSON o sobre inválido | 400 | `{"status":"rejected","error":"..."}` |
 | POST /events, partida no iniciada | 404 | Rechazo con error explicativo |
 | POST /events, duplicado, segundo inicio o evento tras cierre | 409 | Rechazo con error explicativo |
+| POST /events, capacidad por partida o cierre excedida | 413 | Rechazo sin almacenar ni reservar el eventId |
 | GET /matches/{gameId}/{matchId}, existente | 200 | Resumen de ingestión |
 | GET /matches/{gameId}/{matchId}, inexistente | 404 | `{"error":"..."}` |
 | Método no permitido en estas rutas | 405 | JSON de error y cabecera `Allow` |
@@ -250,6 +251,14 @@ La validación previa al almacenamiento se conserva:
 
 Go no exige atributos como damage, weapon, lap ni duration.
 
+## Capacidad alineada con Scala
+
+Máximo 10 000 eventos y 8 MiB serializados por partida. Inicio y cierre cuentan;
+Go reserva un evento y 1 MiB para MATCH_FINISHED. El cierre también tiene techo
+de 1 MiB serializado. Un exceso devuelve 413 antes de modificar el estado.
+El límite previo de 1 MiB por POST sigue devolviendo 400 si se excede el cuerpo.
+Consultar [política y garantías](../docs/integration-api.md#capacidad-y-reserva-para-cerrar).
+
 ## Pruebas
 
 Desde `go-ingestion/`:
@@ -312,8 +321,8 @@ anterior `NewHandler()` sigue funcionando, con integración desconfigurada.
 
 Configurar antes de arrancar (URL base, sin `/analyze`):
 
-```powershell
-$env:SCALA_SERVICE_URL = 'http://localhost:9000'
+```cmd
+set "SCALA_SERVICE_URL=http://localhost:9000"
 cd go-ingestion
 go run ./cmd/server
 ```

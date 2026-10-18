@@ -67,6 +67,9 @@ func (a *api) acceptEvent(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, matches.ErrNotFound) {
 			status = http.StatusNotFound
 		}
+		if errors.Is(err, matches.ErrLimit) {
+			status = http.StatusRequestEntityTooLarge
+		}
 		rejectEvent(w, status, err)
 		return
 	}

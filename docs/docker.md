@@ -19,6 +19,16 @@ son históricos; CI y publicación se añadieron después.
 Usar los comandos desde la raíz del repositorio. No cambiar el contexto Docker
 ni ejecutar como administrador para estas instrucciones.
 
+## Windows y rutas con tildes
+
+Los pasos consolidados para CMD están en [Windows CMD](windows-cmd.md).
+Para construir desde fuentes, usar una ruta sin tildes en todos sus niveles.
+En el equipo revisado, el contexto bajo `Programación/gamestats-revisión`
+falló antes de compilar con `x-docker-expose-session-sharedkey` y
+`non-printable ASCII characters`. La misma copia sin tildes construyó y
+pasó las pruebas integradas. El paquete publicado usa imágenes por digest
+y no realiza esa construcción de fuentes.
+
 ## Arranque y demostración
 
 ~~~sh
@@ -76,10 +86,10 @@ Opciones Compose, configurables mediante variables de entorno o .env local:
 | SIM_MAX_DURATION | 2m |
 
 Un .env local no se versiona ni entra al contexto de construcción.
-Para otro puerto, en PowerShell:
+Para otro puerto, en CMD:
 
-~~~powershell
-$env:GO_PORT = '8081'
+~~~cmd
+set "GO_PORT=8081"
 docker compose up -d --build
 ~~~
 
@@ -356,5 +366,6 @@ No se añadieron workflows, publicaciones ni infraestructura de deployment.
 ## Continuidad histórica
 
 Al cerrar la Etapa 6 se propuso CI como siguiente tarea. CI y la distribución
-v1.0.0 ya existen. El pendiente actual es corregir y volver a verificar Finalize
-en una tarea separada; ver [hoja de ruta](implementation-roadmap.md).
+v1.0.1 ya están verificadas, incluida la reparación de Finalize. Los cambios
+posteriores de avanceFran se prueban desde fuentes; ver
+[hoja de ruta](implementation-roadmap.md) y [verificación actual](verificacion-entrega.md).

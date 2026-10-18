@@ -1,14 +1,16 @@
 # Índice documental de GameStats
 
-Estado auditado: 18 de octubre de 2026. Empezar por el [README principal](../README.md)
-y la [Release v1.0.0](https://github.com/JusMH/gamestats/releases/tag/v1.0.0).
-El profesor usa el ZIP y sus manuales; el desarrollador utiliza los contratos y
-manuales de componentes. La [auditoría](academic-audit.md) relaciona el enunciado
-original con las evidencias y registra el fallo conocido de Finalize.
+Estado de la entrega revisada: 18 de octubre de 2026. Empezar por el
+[README principal](../README.md), la
+[Release v1.0.1](https://github.com/JusMH/gamestats/releases/tag/v1.0.1) y
+[la guía CMD](windows-cmd.md). Los cambios posteriores de esta rama se ejecutan
+desde fuentes; no se han vuelto a publicar los paquetes.
+La [auditoría](academic-audit.md) conserva la evidencia histórica de v1.0.0.
 
 ## Inventario completo de Markdown versionable
 
-19 documentos existentes revisados y 3 documentos nuevos: 22 en total. Se excluyen
+24 documentos Markdown: los 22 de la auditoría original, la guía CMD y
+la verificación actual de entrega. Se excluyen
 cachés, dependencias, archivos generados y evidencia ignorada; no son documentación
 autoritativa del repositorio. «Corregido» no cambia el carácter normativo del
 contrato ni implica cambios de API o perfiles.
@@ -24,18 +26,20 @@ contrato ni implica cambios de API o perfiles.
 | [Integración HTTP](integration-api.md) | Normativa vigente | Corregido: servicio real y verificación existente; mismo protocolo. |
 | [Catálogo de fixtures](fixtures/analysis-v1/README.md) | Normativa de ejemplos y manual del verificador | Corregido: 13 fixtures ya ejecutados; JSON y oráculos intactos. |
 | [Docker](docker.md) | Manual operativo con registro histórico de Etapa 6 | Corregido: distinguir estado presente y pruebas de aquella etapa. |
-| [Distribución académica](academic-distribution.md) | Manual técnico operativo | Corregido: Release/digests reales, recuperación manual y errata del ZIP. |
-| [Hoja de ruta](implementation-roadmap.md) | Estado vigente y planificación | Corregido: publicación hecha, Finalize pendiente y modalidad local elegida. |
+| [Distribución académica](academic-distribution.md) | Manual técnico operativo | Actualizado: v1.0.1, hashes/digests y separación de historia y fuentes posteriores. |
+| [Hoja de ruta](implementation-roadmap.md) | Estado vigente y planificación | Actualizado: v1.0.1 aprobada y límites de cantidad/bytes alineados en esta rama. |
 | [Scala 4A](scala-4a.md) | Histórico de implementación | Conservado: 501 y cobertura parcial son hechos de 4A; banner enlaza estado actual. |
 | [Scala 4B](scala-4b.md) | Histórico de implementación | Conservado: resultados de 4B y siguiente tarea en aquel momento, con banner. |
 | [Go](../go-ingestion/README.md) | Manual operativo | Corregido: versiones declaradas/probadas, CI y distribución. |
 | [Scala](../scala-analysis/README.md) | Manual operativo | Corregido: estado actual y Temurin 21 de CI frente a patch de Docker. |
 | [Simulador](../simulator/README.md) | Manual operativo con evidencia de Etapa 5 | Corregido: CI/race posterior y distribución; escenarios conservados. |
-| [Workflows](../.github/workflows/README.md) | Manual operativo de CI/publicación | Corregido: CI verde y publicación parcialmente fallida, sin cambiar YAML. |
+| [Workflows](../.github/workflows/README.md) | Manual operativo de CI/publicación | Actualizado: CI y publicación de v1.0.1 aprobadas; YAML sin cambios. |
 | [Instalación del evaluador](../distribution/INSTALACION.md) | Plantilla de manual operativo | Identificada como fuente de futuros paquetes; adjunto v1.0.0 intacto. |
 | [Guía del evaluador](../distribution/GUIA-DE-EVALUACION.md) | Plantilla de manual operativo | Identificada como fuente de futuros paquetes; adjunto v1.0.0 intacto. |
 | [Integrar nuevos juegos](integrating-new-games.md) | Guía técnica operativa nueva | Perfil score.player y productor externo; Prolog explícitamente FUTURO. |
 | [Auditoría académica](academic-audit.md) | Informe de auditoría nuevo | Matriz del enunciado, evidencias, límites y verificaciones. |
+| [Windows CMD](windows-cmd.md) | Manual operativo nuevo | Construcción, demostración, informes y pruebas desde CMD. |
+| [Verificación de entrega](verificacion-entrega.md) | Revisión actual del enunciado | Ocho entregables, evidencia local y pasos humanos pendientes. |
 | [Este índice](README.md) | Navegación e inventario nuevo | Clasificación completa y fuentes de verdad. |
 
 ## Orden de lectura y fuentes de verdad

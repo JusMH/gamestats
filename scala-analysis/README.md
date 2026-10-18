@@ -30,6 +30,23 @@ y [MUnit 1.2.1](https://github.com/scalameta/munit/releases/tag/v1.2.1).
 
 ## Preparación reproducible en Windows
 
+Desde CMD, en esta carpeta, con JAVA_HOME apuntando a su JDK 21:
+
+~~~cmd
+set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot"
+"%JAVA_HOME%\bin\java.exe" -version
+sbtw.cmd compile test
+sbtw.cmd run
+~~~
+
+Ajustar la ruta Java a cada equipo. `sbtw.cmd` respeta JAVA_HOME, fija la misma
+versión/checksum de sbt y usa las mismas carpetas locales que el wrapper
+PowerShell. No necesita PowerShell, instalación global de sbt ni cambios
+globales de entorno. Requiere curl.exe y certutil.exe. Ver
+[la guía CMD completa](../docs/windows-cmd.md) para Go, Docker y pruebas.
+Las instrucciones PowerShell se conservan como alternativa para otros usuarios.
+
+
 Desde PowerShell, en esta carpeta:
 
 ~~~powershell
@@ -271,7 +288,7 @@ No se valida física de Snake ni legalidad semántica de vueltas.
 
 El simulador multijuego de la implementación 5 ya está disponible; la ejecución
 Docker de la implementación 6 se describe a continuación. CI y la distribución
-v1.0.0 ya se verificaron; ver [estado vigente](../docs/academic-audit.md).
+v1.0.1 ya se verificaron; ver [estado vigente](../docs/implementation-roadmap.md).
 Históricamente, durante 4B no se implementaron simulador, Docker, CI/CD, deployment, base de datos,
 WebSockets/SSE ni reglas universales dentro de 4B.
 

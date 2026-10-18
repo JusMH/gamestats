@@ -12,6 +12,8 @@ import subprocess
 import sys
 import uuid
 
+from ingestion_limits import check_limits
+
 ROOT = Path(__file__).resolve().parents[1]
 COUNTS = {
     ("tic-tac-toe", "ttt-win"): 7,
@@ -202,6 +204,8 @@ def main():
         check_duplicate(docker.task("duplicate", args.run_id, expected=1), args.run_id)
         second_id = args.run_id + "-new"
         second = check_demo(docker.task("new-id", second_id), second_id)
+        address = docker.dc(["port", "go-ingestion", "8080"], "published-port").strip()
+        summary["ingestionLimits"] = check_limits(address)
         docker.health()
         docker.dc(["logs", "--no-color"], "services")
         docker.dc(["images"], "images")

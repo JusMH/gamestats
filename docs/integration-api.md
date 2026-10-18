@@ -143,7 +143,36 @@ incluyendo lectura, cancelación del contexto, sin redirecciones y sin
 reintentos automáticos. El análisis debe completarse dentro de ese presupuesto.
 Cada snapshot copia todos los eventos y bytes de data bajo RLock y luego
 libera los bloqueos; costo proporcional al tamaño de la partida.
-No hay límite de eventos acumulados ni persistencia.
+Go limita cada partida a 10 000 eventos totales y 8 MiB del snapshot JSON
+serializado. No hay persistencia ni límite global de partidas.
+
+### Capacidad y reserva para cerrar
+
+- Inicio y cierre cuentan dentro de los 10 000 eventos. Una partida abierta
+  admite como máximo 9 999; el último lugar se reserva a MATCH_FINISHED.
+- Antes del cierre, Go reserva 1 MiB más el separador para su evento final.
+  Así una partida llena puede cerrarse sin eliminar eventos anteriores.
+- MATCH_FINISHED admite hasta 1 MiB **serializado**, además del límite previo
+  de 1 MiB por POST. Escapes JSON pueden hacer distintos esos tamaños.
+- El cómputo incluye sobre, identificadores, estado, todos los eventos y comas.
+  El estado closed es mayor que open y se utiliza para reservar el presupuesto.
+- Si un evento excede capacidad, POST /events devuelve **413** con
+  `{"status":"rejected","error":"..."}`. No se agrega al historial ni al
+  índice de IDs; puede corregirse y reenviarse con el mismo eventId.
+- Duplicados y errores del ciclo de vida conservan su prioridad y sus códigos.
+  No se recortan eventos, dividen partidas ni borran partidas automáticamente.
+
+El inicio también comprueba que los identificadores permitan un cierre mínimo
+dentro de 1 MiB: eventId único de hasta 64 caracteres ASCII sencillos, timestamp
+UTC de 20 caracteres, sin campos opcionales y data:{}. Ese es un cierre posible,
+no un nuevo formato obligatorio para todos los eventos. En Gato/Snake/carreras
+el cierre admite data:{} según [juegos](games.md).
+
+Las constantes Go están en internal/matches/limits.go; corresponden a los límites
+ya existentes de Decoding.scala y HttpService.scala. El verificador Docker prueba
+partidas abiertas/cerradas de 10 000 eventos y una cerrada de exactamente 8 MiB
+contra Scala real. Los límites JSON y la validación analítica de Scala siguen
+siendo independientes; esta alineación no convierte Go en analizador de juegos.
 
 ## Verificación del contrato
 
