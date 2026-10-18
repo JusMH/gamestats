@@ -1,6 +1,7 @@
 # Perfiles y capacidades componibles v1
 
-Especificación para el futuro Scala; solo existen documentación y ejemplos.
+Especificación vigente del DSL declarativo implementado en Scala. Los
+perfiles JSON se validan al arrancar; no ejecutan código arbitrario.
 Un perfil es un dato local asociado exactamente a un gameId, no un programa.
 Los perfiles completos están en [examples/profiles](examples/profiles/).
 
@@ -128,7 +129,7 @@ No se inventa duración para jugadores vivos ni tiempo acumulado de vueltas.
 
 Parámetros: id, label, eventType, scope=player, size (entero >=2),
 windowSeconds (número >=0), overlap=consume.
-Solo se implementará esta política y availability=live en el MVP.
+La configuración implementada admite esta política y availability=live.
 
 Se ordenan eventos por (timestamp UTC, índice de aceptación). Por jugador,
 se recorre desde el primer candidato: si los siguientes size eventos
@@ -146,7 +147,7 @@ cambiar incluso las ocurrencias provisionales antes observadas.
 
 Entrada: snapshot inmutable, eventos ordenados y parámetros validados.
 Salida: métricas y patrones tipados; sin efectos laterales ni acceso a Go.
-Registro conceptual: Map[AnalyzerId, Analyzer]. El perfil solo refiere IDs
+El registro del motor asocia analyzerId con un ejecutor especializado. El perfil solo refiere IDs
 conocidos: no contiene nombres de clases para cargar, URLs de módulos
 ni código ejecutable.
 
@@ -157,7 +158,7 @@ perfil y snapshot igual que las capacidades genéricas.
 
 ## Configuraciones y datos inválidos
 
-| Situación | Política futura |
+| Situación | Política implementada |
 | --- | --- |
 | Perfil JSON inválido, versión no soportada, campo desconocido | Scala no inicia; diagnóstico local con ubicación. |
 | Plantilla/analizador desconocido o parámetros incompatibles | Scala no inicia, sin ignorar capacidades. |
@@ -176,7 +177,7 @@ ocultos ni un motor que ejecute configuraciones inválidas.
 
 | Indispensable MVP | Ampliación sencilla posterior | Complejidad fuera del MVP |
 | --- | --- | --- |
-| count/sum/avg, agrupación player/match | min/max para mejor vuelta | Reglas universales, DSL e intérprete |
+| count/sum/avg, agrupación player/match | min/max para mejor vuelta | Motor universal de reglas o expresiones arbitrarias |
 | duration inicio-fin | nuevas unidades con conversión explícita | Torneos, equipos y rondas anidadas |
 | Ventana de cardinalidad sin solapamiento | más mapeos de eventos a las mismas capacidades | Joins generales y procesamiento incremental |
 | Perfil que compone capacidades; tablero Gato | count para turnos/rondas/vueltas ya sirve si el productor emite su fin | Validación completa de ajedrez/damas |

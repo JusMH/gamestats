@@ -7,12 +7,16 @@ los análisis devueltos por Go.
 
 Estado verificado: seis partidas propias, 50 eventos aceptados y 60 resultados
 comparados con expectativas independientes, utilizando Go y Scala reales.
-La ejecución Docker se documenta al final; CI/CD y deployment siguen pendientes.
+La ejecución Docker se documenta al final. CI y el despliegue local mediante
+Compose están verificados; [v1.0.0 está publicada](../docs/academic-distribution.md).
 
 ## Requisitos y arranque
 
-Go 1.22 o posterior para el simulador y la ingestión. Verificado con Go 1.26.5
-en Windows/amd64. Solo biblioteca estándar, sin dependencias externas.
+Ambos módulos declaran Go 1.22 en go.mod, pero no hay evidencia suficiente
+para garantizar que toda la suite actual se ejecutó correctamente con esa versión.
+Las pruebas locales del simulador se realizaron en Windows/amd64 con Go 1.26.5.
+GitHub Actions CI se ejecutó en Linux con Go 1.26.5. Las imágenes y la evaluación
+Docker se verificaron en Linux/amd64. Solo biblioteca estándar, sin dependencias externas.
 Scala utiliza JDK 21 y su wrapper local sbt; no necesita un IDE ni una
 instalación global de Scala/sbt. Ver [preparación Scala](../scala-analysis/README.md).
 
@@ -214,9 +218,11 @@ integración con Scala real. Una primera prueba de timeout detectó que el
 handler de prueba debía consumir el cuerpo para observar la desconexión;
 se corrigió y toda la suite final pasó.
 
-go test -race no pudo ejecutarse: el entorno tiene CGO_ENABLED=0 y no hay
+En la comprobación Windows de la Etapa 5, go test -race no pudo ejecutarse:
+el entorno tenía CGO_ENABLED=0 y no había
 gcc/clang en PATH. Se conserva el comando para un entorno con los requisitos;
-no se declara aprobada la detección de carreras.
+no se declaró aprobada en ese entorno. Después, CI Linux del commit de
+v1.0.0 aprobó el detector en ambos módulos; véase la evidencia vigente al final.
 
 ### Integración real automatizada en Windows
 
@@ -286,11 +292,11 @@ Cada partida del simulador debe tener un único productor durante la prueba.
 
 La verificación depende de las versiones de perfiles documentadas.
 No hay persistencia, reanudación, idempotencia, seed, registro dinámico,
-notificaciones push ni garantías exactamente una vez. CI/CD y deployment
-siguen pendientes.
+notificaciones push ni garantías exactamente una vez. CI está implementada;
+el deployment elegido es local con Compose, sin alojamiento remoto.
 
 La implementación 6 incorpora Docker Compose verificado para los tres componentes,
-como se describe a continuación. Siguiente tarea: CI/CD.
+como se describe a continuación. Ver [hoja de ruta vigente](../docs/implementation-roadmap.md).
 
 ## Ejecución como tarea Docker
 
@@ -320,3 +326,10 @@ python docker/verify.py
 ~~~
 
 [Guía Docker completa, variables y resultados ejecutados](../docs/docker.md).
+
+## Evidencia vigente de concurrencia
+
+CI de main [39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511)
+aprobó build/test/vet y el detector de carreras de ambos módulos en Linux.
+Esto resuelve la comprobación pendiente del entorno Windows, sin garantizar
+ausencia de todos los defectos posibles. Ver [límites actuales](../docs/architecture.md#límites-comprobados-en-código).

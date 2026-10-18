@@ -7,7 +7,9 @@ estado; las estadísticas y los patrones corresponden a Scala.
 
 ## Preparación y ejecución
 
-Instalar Go **1.22 o posterior** y verificar `go version`.
+El módulo declara **Go 1.22** en go.mod. La versión comprobada en CI y Docker
+es **Go 1.26.5**; no se ha verificado aquí la suite con Go 1.22. Para reproducir
+la evidencia, usar 1.26.5 y verificar `go version`.
 Desde la raíz del repositorio:
 
 ```sh
@@ -282,7 +284,9 @@ No hay persistencia durable, reintentos idempotentes ni recuperación tras fallo
 GET /matches muestra solo estado de ingestión; GET /results delega las estadísticas al servicio Scala, si está disponible.
 
 Se envían snapshots a Scala bajo demanda; los resultados analíticos no se almacenan.
-No hay bases de datos, CI/CD, interfaz gráfica ni despliegue; Docker se documenta al final.
+No hay bases de datos ni interfaz gráfica. CI y el despliegue local Compose
+ya están disponibles; ver [estado y distribución](../docs/academic-audit.md).
+Docker se documenta al final. No existe despliegue remoto.
 El servicio Scala real ya está integrado y verificado. Quedan pendientes
 las políticas de reintentos y retención.
 
@@ -290,7 +294,7 @@ las políticas de reintentos y retención.
 
 Se implementa exclusivamente el mecanismo HTTP; **utiliza el servicio
 real desarrollado en Scala**. El [contrato de integración](../docs/integration-api.md)
-conserva el transporte existente y ahora define los elementos analíticos para implementar Scala; documenta los límites
+conserva el transporte y define los elementos analíticos ya implementados en Scala; documenta los límites
 y la política exacta de errores.
 
 ```text
@@ -396,3 +400,10 @@ Compose configura SCALA_SERVICE_URL=http://scala-analysis:9000 y publica
 127.0.0.1:8080. No se modifican los endpoints ni la implementación.
 El proceso conserva todas las partidas en memoria: detenerlo/recrearlo las pierde.
 [Guía Docker y procedimiento de integración](../docs/docker.md).
+
+## Evidencia vigente de concurrencia
+
+CI de main [39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511)
+aprobó build/test/vet y el detector de carreras de ambos módulos en Linux.
+Esto resuelve la comprobación pendiente del entorno Windows, sin garantizar
+ausencia de todos los defectos posibles. Ver [límites actuales](../docs/architecture.md#límites-comprobados-en-código).

@@ -1,6 +1,7 @@
 # Juegos de demostración y contratos de data
 
-Estado: contratos para implementar Scala y el simulador en etapas futuras.
+Estado: contratos vigentes, utilizados por los perfiles, el motor Scala y el
+simulador implementados. Las extensiones expresamente futuras no se incluyen.
 Go solo conoce el [sobre v1](events.md) y los tipos comunes de control.
 Los datos aquí exigidos no se convierten en requisitos de ingestión Go.
 
@@ -109,7 +110,7 @@ No se simulan posiciones, velocidad, cuerpo de la serpiente ni colisiones.
 cause no se verifica físicamente ni altera las métricas MVP.
 Tampoco se certifica que no haya manzanas después de una muerte; esa
 validación de legalidad requeriría una regla especializada posterior.
-Los datos normales del simulador futuro respetarán ese orden.
+Los escenarios normales del simulador respetan ese orden.
 Los campos requeridos por una salida se validan antes de calcularla.
 
 ## Carreras: prueba de extensibilidad

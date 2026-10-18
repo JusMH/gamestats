@@ -1,7 +1,8 @@
 # Implementación Scala 4A: decisiones y verificación
 
 > Documento histórico de 4A. La política transitoria 501 quedó eliminada
-> en [4B](scala-4b.md); allí se encuentra el estado actual y sus verificaciones.
+> en [4B](scala-4b.md); allí se documenta el cierre de 4B. El [índice vigente](README.md) y la
+> [auditoría final](academic-audit.md) describen las etapas posteriores.
 
 Implementación real del subconjunto genérico de la Etapa 1, sin cambios en
 Go, perfiles ni fixtures aprobados. Ver [ejecución y versiones](../scala-analysis/README.md).

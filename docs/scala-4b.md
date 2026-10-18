@@ -1,5 +1,9 @@
 # Implementación Scala 4B — patrones y analizadores
 
+> Documento histórico del cierre de 4B. Sus resultados y exclusiones describen
+> esa etapa, no el estado actual: simulador, Docker, CI y distribución se
+> completaron después. Ver [índice vigente](README.md) y [auditoría](academic-audit.md).
+
 Estado: temporal-window/v1 y tic-tac-toe-line/v1 implementados, registrados
 y verificados. Los 13 fixtures aprobados producen sus respuestas completas
 en el motor puro, por HTTP real y mediante el puente Go → Scala real.

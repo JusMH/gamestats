@@ -1,115 +1,93 @@
 # GameStats
 
-Plataforma multilenguaje para el procesamiento y análisis de eventos de videojuegos. Proyecto académico del curso de Lenguajes de Programación.
+Plataforma académica multijuego del curso de Lenguajes de Programación. Go
+recibe acontecimientos y coordina partidas; Scala calcula estadísticas y
+patrones mediante perfiles declarativos y transformaciones funcionales.
+El simulador es un productor HTTP independiente, no un videojuego gráfico.
 
-## Propósito
+## Instalar y evaluar sin herramientas de desarrollo
 
-Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadísticas y detecciones de patrones sin depender de la implementación de un videojuego específico.
-
-## Componentes
-
-| Carpeta | Responsabilidad |
-| --- | --- |
-| `go-ingestion/` | Recepción, validación, agrupación, estado temporal y concurrencia en Go. |
-| `scala-analysis/` | Transformación funcional, estadísticas y patrones en Scala. |
-| `simulator/` | Fuente simulada de eventos para pruebas y demostración. |
-| `docs/` | Arquitectura, contrato de eventos y decisiones técnicas. |
-| `.github/workflows/` | CI aprobada. Publicación GHCR preparada; primera publicación pendiente. |
-
-## Estado del proyecto
-
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI está aprobada en GitHub Actions. La distribución académica con GHCR está preparada, todavía sin publicar imágenes ni ZIP definitivo; el despliegue remoto queda fuera de esta modalidad de entrega. Ver [pipeline y verificaciones](.github/workflows/README.md). Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
-
-Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
-
-## Requisitos académicos principales
-
-- Go controla la ingestión, validación y procesamiento concurrente.
-- Scala implementa análisis con colecciones y operaciones funcionales.
-- Ambos módulos son independientes y se comunican mediante un mecanismo documentado.
-- Deben existir simulación realista, estadísticas por jugador y partida, análisis combinado y al menos una regla basada en secuencias.
-- Se requieren Docker, CI/CD, ejecución integrada y una versión desplegada funcional.
-
-## Desarrollo
-
-Para ejecutar el servicio Go (Go 1.22 o posterior):
+Descargar **GameStats-Entrega-v1.0.0.zip** desde la
+[Release v1.0.0](https://github.com/JusMH/gamestats/releases/tag/v1.0.0),
+extraerlo y abrir una terminal en su carpeta. No usar «Source code (zip)».
+Requiere Docker Desktop o motor compatible, Compose y contenedores Linux/amd64;
+la primera descarga de imágenes necesita Internet. No requiere Git, Go,
+Java, Scala, sbt ni Python.
 
 ```sh
-cd go-ingestion
-go run ./cmd/server
+docker compose up -d --wait
+docker compose ps
+docker compose run --rm simulator --run-id evaluacion-01
+docker compose run --rm simulator --mode negative --run-id negativos-01
+docker compose down
 ```
 
-El servidor escucha en el puerto 8080. Consultar [el README del módulo Go](go-ingestion/README.md) para los endpoints, ejemplos de Postman, políticas de estado y pruebas (`go test ./...`, `go vet ./...` y `go test -race ./...` cuando el entorno lo permita).
+Go está disponible en http://127.0.0.1:8080/health; Scala solo en la red interna.
+Cada nueva demostración requiere otro run-id mientras siga vivo el proceso Go.
+Reiniciar Go pierde todas las partidas: no existe persistencia histórica.
+Los manuales incluidos explican instalación y evaluación. Ver
+[distribución, digests y evidencias](docs/academic-distribution.md).
 
-## Diseño de la Etapa 1
+## Estado comprobado
 
-El núcleo permanece genérico. Gato y Snake son juegos principales de demostración; racing verifica la composición configurable de métricas y duración sin lógica específica en el núcleo.
+- Ingestión v1, ciclo de vida, duplicados, concurrencia y snapshots Go implementados.
+- Scala implementa count/sum/avg, duración, ventanas temporales y tablero de Gato.
+  Los 13 fixtures completos se comparan con el motor puro y HTTP.
+- El simulador produce seis partidas: victoria y empate de Gato, Snake con/sin
+  ráfaga y dos carreras. Cada demo verifica 50 eventos y 60 consultas,
+  48 abiertas y 12 cerradas, contra expectativas independientes.
+- Docker Compose y CI están implementados. La
+  [CI del commit de v1.0.0](https://github.com/JusMH/gamestats/actions/runs/39104918511)
+  pasó, incluidos ambos detectores de carreras Go.
+- Las tres imágenes GHCR y los tres adjuntos de v1.0.0 están publicados.
+  La [evaluación anónima, intento 2](https://github.com/JusMH/gamestats/actions/runs/39105352591/attempts/2)
+  pasó, pero **el workflow completo terminó en failure por Finalize**.
+  Se recuperó manualmente la Release con el mismo ZIP evaluado.
+  No se presenta esa automatización como completamente aprobada.
 
-- [Arquitectura](docs/architecture.md), [sobre v1](docs/events.md) e [integración HTTP](docs/integration-api.md).
-- [Perfiles y plantillas](docs/analysis-templates.md), [datos de juegos](docs/games.md) y [resultados en vivo/finales](docs/metrics-and-patterns.md).
-- [Fixtures verificables](docs/fixtures/analysis-v1/README.md) y [MVP y hoja de ruta](docs/implementation-roadmap.md).
+La modalidad de deployment elegida es **local con Docker Compose**: Go y Scala
+son servicios independientes en el equipo del evaluador. Publicar imágenes y
+un ZIP no equivale a alojar el servicio. No hay deployment remoto ni nube.
+La [auditoría final](docs/academic-audit.md) relaciona el enunciado original,
+el código, las evidencias y las limitaciones, incluido el defecto de Finalize.
 
-La consulta GET /results recalcula un snapshot bajo demanda, abierto o cerrado; no hay push ni análisis automático al cerrar. El motor 4B ya se implementó y probó con los 13 fixtures completos de Gato, Snake, racing y juego desconocido, incluyendo integración Go → Scala real.
-## Simulador multijuego disponible
+## Arquitectura y documentación
 
-El [simulador Go independiente](simulator/README.md) genera dos partidas de Gato,
-dos de Snake y dos de carreras, sin ejecutar videojuegos ni leer los fixtures.
-Utiliza workers por partida, barreras y HTTP público; verifica métricas y patrones
-contra expectativas propias en cinco fases, repitiendo las consultas.
+| Componente | Responsabilidad |
+| --- | --- |
+| [go-ingestion](go-ingestion/README.md) | HTTP, validación del sobre, estado en memoria, sincronización y puente a Scala. |
+| [scala-analysis](scala-analysis/README.md) | Motor funcional sin estado acumulado, perfiles, métricas y analizadores. |
+| [simulator](simulator/README.md) | Escenarios deterministas, concurrencia por partida y verificación HTTP. |
+| [CI y publicación](.github/workflows/README.md) | Verificaciones automáticas y publicación manual controlada. |
 
-Desde simulator, con Go y Scala iniciados:
+El [índice documental](docs/README.md) clasifica todos los Markdown y separa
+contratos, manuales y documentos históricos. Empezar por
+[arquitectura](docs/architecture.md), [eventos v1](docs/events.md),
+[integración HTTP](docs/integration-api.md) y
+[perfiles componibles](docs/analysis-templates.md).
+Para conectar otro productor, ver [integrar nuevos juegos](docs/integrating-new-games.md).
 
-~~~powershell
-go run ./cmd/simulator --run-id defensa-01 --report evidence/defensa-01.json
-~~~
+GET /results toma un snapshot completo y consulta Scala bajo demanda, tanto
+con la partida abierta como cerrada. No hay push, caché, análisis automático
+al cerrar ni contadores acumulados entre consultas. Los juegos sin perfil
+siguen siendo aceptados por Go y obtienen arrays analíticos vacíos en Scala.
 
-Integración real ejecutada: 50 eventos aceptados en seis partidas y 60 consultas
-verificadas (48 abiertas, 12 cerradas), con seis solicitudes simultáneas.
-También se comprobaron los casos negativos y el rechazo al reutilizar IDs.
-El README del simulador incluye arranque completo, script automatizado Windows,
-pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; el [workflow CI](.github/workflows/README.md) está aprobado y la [publicación académica](docs/academic-distribution.md) queda preparada mediante aprobación manual desde main y Release creada al final.
+## Desarrollo y reproducción desde fuentes
 
-## Ejecución con Docker Compose
+Con el repositorio y Docker, desde la raíz:
 
-Con Docker y Compose, desde la raíz, sin Go/Scala/sbt locales:
-
-~~~sh
-docker compose up -d --build
-docker compose run --rm simulator --run-id docker-demo-01
-docker compose run --rm simulator --mode negative --run-id docker-negative-01
+```sh
+docker compose up -d --build --wait
+docker compose run --rm simulator --run-id desarrollo-01
 docker compose down
-~~~
+```
 
-Go se publica en 127.0.0.1:8080; Scala es interno. El simulador se ejecuta
-bajo demanda, con verificación habilitada. Reiniciar Go pierde sus partidas.
-Para otra demostración utilizar otro run-id. La [guía Docker](docs/docker.md)
-incluye versiones, salud, logs, seguridad y resultados de las pruebas.
-Verificación automatizada opcional: python docker/verify.py.
-Comprobada en contenedores: dos demos de seis partidas y 60 consultas cada una,
-negativos, duplicados y nuevo ID; recursos de pruebas eliminados.
+El Compose raíz construye desde fuentes; el ZIP usa imágenes publicadas fijadas
+por digest. Ver [guía Docker](docs/docker.md) para logs, salud y verificación.
+Los README de cada componente explican ejecución sin contenedores y pruebas.
+Ambos go.mod declaran Go 1.22; la versión efectivamente comprobada en CI/Docker
+es Go 1.26.5. Scala usa 3.3.7, sbt 1.11.7 y JDK 21.
 
-## Integración continua
-
-[GameStats CI](.github/workflows/README.md) se activa en PR hacia main, push a
-main y ejecución manual. Comprueba ambos módulos Go con detector de carreras,
-Scala/MUnit y sus 13 fixtures, empaquetado, contratos, 16 pruebas de infraestructura
-e integración Docker real. Conserva evidencia y reportes XML aun cuando fallen
-las pruebas; CI result exige éxito de todos los trabajos.
-
-CI fue aprobada y fusionada mediante el PR #11. La guía del pipeline explica
-versiones, reproducción local, diagnóstico y artefactos. CI mantiene permisos
-de solo lectura; la publicación utiliza un workflow independiente.
-
-## Entrega académica con Docker Desktop (preparada, pendiente de publicación)
-
-La [guía de distribución](docs/academic-distribution.md) prepara tres imágenes
-GHCR y GameStats-Entrega-v1.0.0.zip con Compose fijado por digest y manuales en
-español. El profesor necesitará únicamente Docker Desktop y conexión para la
-primera descarga; no necesitará Git ni runtimes de desarrollo.
-
-**Todavía no hay una distribución publicada y verificada para entregar.** La publicación requiere
-aprobación manual de versión y SHA de main, descarga anónima de las tres imágenes
-y prueba completa del paquete. Solo al final se crea un borrador con todos los
-adjuntos y se publica la Release, compatible con Releases inmutables.
-Los [manuales](distribution/INSTALACION.md) son plantillas de esa futura entrega.
-No se implementó deployment remoto ni se publicaron imágenes en esta tarea.
+No se implementan bases de datos, procesamiento incremental, registro dinámico,
+videojuegos completos, Prolog, WebSockets/SSE ni reglas universales.
+Los próximos trabajos están en la [hoja de ruta](docs/implementation-roadmap.md).

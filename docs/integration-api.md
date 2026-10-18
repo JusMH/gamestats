@@ -1,9 +1,8 @@
 # Contrato HTTP Go → Scala y análisis bajo demanda
 
-El transporte exterior descrito ya existe en Go. Los elementos interiores
-de métricas/patrones quedan definidos por este diseño para implementar Scala;
-no se declara que el servicio analítico real esté disponible.
-No cambia ninguna ruta, nombre exterior, estado ni código del puente Go.
+Contrato implementado por Go y el servicio Scala real. Los elementos
+interiores se especifican en metrics-and-patterns.md. Esta revisión
+documental no cambia rutas, campos exteriores ni códigos del puente Go.
 
 ## Petición
 
@@ -30,7 +29,7 @@ POST /analyze, Content-Type: application/json, Accept: application/json.
 
 Los cuatro campos son obligatorios. state es open o closed. events contiene
 el snapshot completo en orden de aceptación, al menos MATCH_STARTED.
-El futuro Scala validará sobre v1, IDs únicos, coincidencia de gameId/matchId,
+Scala valida sobre v1, IDs únicos, coincidencia de gameId/matchId,
 inicio único primero, ausencia de cierre si open y cierre único último si
 closed. No debe aceptar una mezcla de partidas ni un arreglo vacío como
 partida real. Las peticiones estructuralmente incoherentes reciben HTTP 400
@@ -62,8 +61,9 @@ gameId, matchId y state deben coincidir exactamente con el snapshot enviado,
 aunque la partida cambie mientras se calcula.
 
 Go valida esos campos exteriores y transmite los elementos interiores como
-JSON opaco. No verifica todavía sus estados, IDs, cantidades ni procedencia.
-Scala deberá comprobar el contrato interior antes de responder.
+JSON opaco. No verifica sus estados, IDs, cantidades ni procedencia: esa semántica
+corresponde a Scala.
+Scala construye los elementos interiores mediante sus modelos tipados.
 Los campos exteriores adicionales se aceptan pero Go los descarta:
 por eso status, source, basis y reason se ubican dentro de cada resultado,
 sin depender de metadata exterior nueva.
@@ -78,7 +78,7 @@ GET /results/{gameId}/{matchId} obtiene un snapshot y llama a Scala en
 cada consulta. Funciona con open y closed. No dispara cierre, no bloquea
 mutexes durante la red, no guarda resultados y no mantiene caché.
 
-El cálculo futuro será una función del snapshot y del perfil activo, sin
+El cálculo es una función del snapshot y del perfil activo, sin
 acumular resultados de consultas anteriores. availability determina qué
 salidas son útiles en vivo y cuáles esperan el cierre. Los resultados
 individuales diferencian provisional, final, unavailable e invalid.
@@ -97,7 +97,7 @@ posteriores. No se prescribe un intervalo de polling sin medir capacidad.
 
 ## Juegos y errores de dominio
 
-Un gameId sin perfil devuelve desde el futuro Scala HTTP 200, los mismos
+Un gameId sin perfil devuelve desde Scala HTTP 200, los mismos
 identificadores/state y arrays vacíos. No se inventan estadísticas ni se
 rechaza la ingestión de un juego desconocido.
 El protocolo actual no distingue públicamente "perfil ausente" de "perfil
@@ -106,7 +106,7 @@ Una mejora de diagnóstico requeriría acordar una extensión del protocolo.
 
 Un perfil conocido con una muestra numérica errónea devuelve HTTP 200
 y las salidas afectadas invalid, junto con las independientes válidas.
-Un roster declarado inválido impide identificar sujetos: Scala devolverá
+Un roster declarado inválido impide identificar sujetos: Scala devuelve
 400 para ese snapshot, no filas con IDs inventados.
 Configuraciones inválidas impiden arrancar Scala. Fallos internos no se
 convierten en métricas vacías: Scala devuelve 500.
@@ -140,16 +140,18 @@ Sin variable, los otros endpoints siguen funcionando.
 
 El cliente reutilizable admite concurrencia, timeout total de 5 segundos
 incluyendo lectura, cancelación del contexto, sin redirecciones y sin
-reintentos automáticos. El futuro Scala debe respetar ese presupuesto.
+reintentos automáticos. El análisis debe completarse dentro de ese presupuesto.
 Cada snapshot copia todos los eventos y bytes de data bajo RLock y luego
 libera los bloqueos; costo proporcional al tamaño de la partida.
 No hay límite de eventos acumulados ni persistencia.
 
-## Verificación de contrato pendiente
+## Verificación del contrato
 
 El [catálogo de fixtures](fixtures/analysis-v1/README.md) incluye requests y
 respuestas esperadas abiertas/cerradas. El verificador local comprueba
 ejemplos y derivaciones; no sustituye pruebas contra Scala real.
 Las pruebas Go existentes usan mocks de HTTP, no un motor Scala.
-La implementación próxima deberá ejecutar esos mismos pares contra
-POST /analyze y GET /results, incluyendo consultas repetidas y simultáneas.
+La suite Scala compara los 13 pares mediante el motor puro y HTTP real.
+La integración Go → Scala y el simulador también se ejecutan con servicios
+reales en CI; ver [auditoría y evidencia publicada](academic-audit.md).
+Los mocks de las pruebas unitarias Go no sustituyen esa integración.

@@ -3,8 +3,9 @@
 Servicio real Scala 3 con POST /analyze y GET /health. Ejecuta perfiles
 declarativos con event-metrics/v1 (count/sum/avg), duration/v1,
 temporal-window/v1 y el analizador tic-tac-toe-line/v1.
-No hay lógica por videojuego en el ejecutor, estado entre consultas,
-CI/CD ni base de datos dentro del motor. El simulador es externo y Docker se documenta al final.
+No hay lógica por videojuego en el ejecutor, estado acumulado entre consultas
+ni base de datos dentro del motor. El simulador es externo; CI y distribución
+ya existen en el repositorio. Docker se documenta al final.
 
 ## Requisitos y versiones
 
@@ -19,7 +20,9 @@ CI/CD ni base de datos dentro del motor. El simulador es externo y Docker se doc
 Jackson es una biblioteca Java interoperable con Scala, sin plugin ni
 módulo de reflexión Scala; trae jackson-core y jackson-annotations de forma
 transitiva. No se usa evaluación de código desde perfiles.
-Las versiones son fijadas y comprobadas, no una afirmación de que sean
+CI selecciona Temurin `21` y resuelve su actualización disponible; no fija
+21.0.12.1. La imagen Docker sí fija JDK/JRE 21.0.12+8 y su digest.
+Las versiones del proyecto son fijadas y comprobadas, no una afirmación de que sean
 las más recientes. Referencias: [compatibilidad JDK/Scala/sbt](https://docs.scala-lang.org/overviews/jdk-compatibility/overview.html),
 [sbt 1.11.7](https://github.com/sbt/sbt/releases/tag/v1.11.7),
 [Jackson 2.20.1](https://github.com/FasterXML/jackson/wiki/Jackson-Release-2.20.1)
@@ -267,8 +270,9 @@ resultado unavailable/insufficient_evidence, con cero líneas observadas.
 No se valida física de Snake ni legalidad semántica de vueltas.
 
 El simulador multijuego de la implementación 5 ya está disponible; la ejecución
-Docker de la implementación 6 se describe a continuación. La siguiente etapa es CI/CD.
-No se implementaron simulador, Docker, CI/CD, deployment, base de datos,
+Docker de la implementación 6 se describe a continuación. CI y la distribución
+v1.0.0 ya se verificaron; ver [estado vigente](../docs/academic-audit.md).
+Históricamente, durante 4B no se implementaron simulador, Docker, CI/CD, deployment, base de datos,
 WebSockets/SSE ni reglas universales dentro de 4B.
 
 

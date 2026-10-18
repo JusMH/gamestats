@@ -1,9 +1,10 @@
 # Fixtures deterministas del diseño analítico v1
 
-Estos archivos son ejemplos de contrato, no salidas de Scala ejecutado.
+Estos archivos son oráculos de contrato; sus 13 respuestas completas ya se
+comparan con el motor Scala y HTTP real. No son capturas generadas del motor.
 Cada *.request.json es un cuerpo completo de POST /analyze, con eventos
 aceptados en su orden original. Cada *.expected.json es la respuesta HTTP 200
-que deberá producir el motor futuro según el perfil indicado en manifest.json.
+que debe producir el motor implementado según el perfil indicado en manifest.json.
 No se envía el array completo a POST /events: para probar ingestión se envía
 cada elemento de events por separado y en orden.
 
@@ -71,18 +72,18 @@ red, no escribe eventos ni calcula estadísticas en Go. Comprueba:
 
 El script es un oráculo acotado a estos ejemplos: no es el motor Scala,
 un simulador, un validador universal de perfiles ni una integración HTTP.
-No admite ejecutar scripts de configuración. No verifica el comportamiento
-de un servicio inexistente ni todos los casos límite de la futura API.
+No admite ejecutar scripts de configuración. Por sí solo no ejecuta el servicio
+Scala ni cubre todos los casos límite de HTTP: esas comprobaciones corresponden a las suites Scala e integración.
 
-## Pruebas futuras obligatorias adicionales
+## Cobertura adicional en las pruebas Scala
 
-La implementación Scala deberá convertir estos archivos en pruebas de
-contrato y agregar: roster inválido, playerId ausente/desconocido,
+Las suites EngineSuite, PatternsSuite, HttpSuite y ValidationSuite utilizan
+estos archivos y añaden casos como: roster inválido, playerId ausente/desconocido,
 mínimos numéricos, fin repetido, timestamp anterior al inicio, muerte tras
 cierre, respuestas invalid/unavailable de patrones, dos ganadores de Gato,
 casilla ocupada, eventos reordenados y zonas equivalentes, ventanas
 solapadas largas, precisión decimal y redondeo HALF_EVEN.
-También probará añadir una métrica a un perfil sin recompilar y que un error
+También comprueban añadir una métrica a un perfil sin recompilar y que un error
 de una capacidad no anule las demás válidas.
 
 Los fixtures no prueban notificaciones push, persistencia o entrega exactamente
