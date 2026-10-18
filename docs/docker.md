@@ -2,7 +2,10 @@
 
 Tres imágenes independientes: Go para ingestión, Scala para análisis y un
 simulador finito bajo demanda. Los servicios mantienen los contratos existentes.
-No se publica Scala ni se introduce persistencia, proxy, CI/CD o deployment.
+Scala no publica un puerto al anfitrión. No hay persistencia ni proxy.
+Esta guía opera el Compose de desarrollo; la [distribución publicada](academic-distribution.md)
+permite instalar sin fuentes. Los resultados de las secciones Etapa 6
+son históricos; CI y publicación se añadieron después.
 
 ## Requisitos
 
@@ -293,7 +296,8 @@ Limitaciones: validación de contenedores realizada en Linux/amd64; no se ejecut
 la variante ARM64. La primera construcción descarga bases y dependencias y puede
 tardar varios minutos con una conexión lenta. Las ejecuciones posteriores usan
 caché. Los datos de Go siguen siendo volátiles. No hay autenticación, retención,
-reintentos idempotentes, publicación de imágenes, CI/CD ni deployment.
+reintentos idempotentes. La publicación GHCR, CI y el despliegue local Compose
+se documentan en [la auditoría actual](academic-audit.md); no hay alojamiento remoto.
 Las cachés de BuildKit y bases compartidas se conservan: no se hizo prune global.
 
 
@@ -349,8 +353,8 @@ No se añadieron workflows, publicaciones ni infraestructura de deployment.
 - [Imagen oficial Go](https://hub.docker.com/_/golang).
 - [Imagen oficial Alpine](https://hub.docker.com/_/alpine).
 
-## Siguiente etapa
+## Continuidad histórica
 
-CI/CD: automatizar las pruebas de los tres módulos, contratos, builds y
-verificación Compose. Publicación de imágenes y deployment requieren tareas
-posteriores y decisiones explícitas; no se implementaron aquí.
+Al cerrar la Etapa 6 se propuso CI como siguiente tarea. CI y la distribución
+v1.0.0 ya existen. El pendiente actual es corregir y volver a verificar Finalize
+en una tarea separada; ver [hoja de ruta](implementation-roadmap.md).

@@ -1,8 +1,8 @@
 # Contrato común de eventos v1
 
-Estado: contrato de ingestión ya implementado en Go; esta etapa documenta
-su compatibilidad y define datos de demostración para el futuro Scala.
-No se modifica código ni se afirma que los analizadores estén implementados.
+Contrato vigente e implementado. Go valida el sobre y el ciclo de vida;
+Scala implementa las capacidades y analizadores descritos en los documentos
+enlazados. Esta revisión documental no modifica el contrato v1.
 
 ## Sobre estable
 
@@ -45,7 +45,9 @@ data usa json.RawMessage: se conserva su contenido numérico y estructural
 sin exigir atributos del videojuego ni convertir números a float64.
 La serialización puede cambiar espacios y escapes; no garantiza igualdad
 textual del JSON. No debe codificarse información significativa en claves
-repetidas dentro de data: el futuro Scala las rechazará como dominio inválido.
+repetidas dentro de data: aunque Go puede aceptarlas, el parser JSON de Scala
+las rechaza con HTTP 400; GET /results lo presenta como 502. No es una fila
+analítica invalid ni una garantía de conservación de JSON ambiguo.
 
 ## Ciclo de vida ya implementado
 
@@ -98,4 +100,5 @@ El contrato exterior HTTP se conserva en
 Los [fixtures](fixtures/analysis-v1/README.md) incluyen snapshots compatibles
 con este sobre. Separan validez de ingestión de validez del dominio: los
 casos numéricos inválidos deben seguir siendo aceptables por Go.
-La validación del dominio propuesta no está implementada en esta etapa.
+Scala ya valida los campos consumidos por sus capacidades y el alcance de
+tablero documentado. No valida universalmente las reglas de cada videojuego.

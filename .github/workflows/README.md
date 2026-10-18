@@ -182,21 +182,28 @@ workflow_dispatch desde main, con versión, SHA completo revisado y confirmació
 previamente un tag o Release. packages: write solo corresponde a images;
 contents: write solo a finalize. CI permanece sin cambios y con permisos de lectura.
 
-Tras verificar anónimamente el ZIP candidato, finalize crea un borrador, carga
-y verifica todos los adjuntos y solo entonces publica. Esto es compatible con
-Releases inmutables. Puede reanudar un borrador propio parcial sin sobrescribir
-y reconocer una publicación ya completa sin modificarla.
+La secuencia diseñada es evaluación anónima → borrador → adjuntos verificados
+→ publicación final, compatible con Releases inmutables. **La ejecución real
+no completó Finalize**; no debe confundirse el diseño o sus pruebas locales con
+un éxito de ese job remoto.
 
-La [guía técnica](../../docs/academic-distribution.md) detalla permisos, digests,
-aprobación y recuperación. Tras hacer públicos los paquetes, Re-run failed jobs
-reutiliza los artefactos y digests de images exitoso, sin reconstruir ni hacer push.
-Los consumidores utilizan outputs del productor para identificar su artefacto.
+La [guía técnica](../../docs/academic-distribution.md) registra los digests,
+permisos y recuperación. En el [run 39105352591, intento 2](https://github.com/JusMH/gamestats/actions/runs/39105352591/attempts/2),
+approval/images/evaluation pasaron y finalize falló con
+`Draft creation not confirmed; retry failed job`. Se publicó v1.0.0 mediante
+recuperación manual, con el mismo ZIP que pasó evaluación. El workflow completo
+terminó failure. El [run CI 39104918511](https://github.com/JusMH/gamestats/actions/runs/39104918511)
+del commit publicado sí terminó success; son workflows distintos.
 
-Se ejecutaron 24 pruebas específicas de distribución, además de las 16 pruebas
-Docker existentes. No se ejecutó esta publicación ni se modificó la visibilidad
-de paquetes o la configuración de Releases. La instalación GHCR, finalización
-real y comportamiento remoto de reejecuciones siguen pendientes de comprobar.
-No se implementó deployment remoto.
+Tras hacer públicos los paquetes, Re-run failed jobs reutilizó el artefacto
+release-images-39105352591-1 y sus digests, sin reconstrucción ni push. No usar
+Re-run all jobs para sobrescribir una versión. La Release manual carece del
+marcador lógico esperado por Finalize; no reintentarlo ciegamente sobre v1.0.0.
+
+Las 24 pruebas locales de distribución complementan las 16 de infraestructura,
+pero no certificaron la creación real del borrador. Es necesario reparar y
+volver a comprobar Finalize en un cambio separado antes de otra publicación.
+La distribución ya permite deployment **local** con Compose; no hay alojamiento remoto.
 
 ## Referencias oficiales
 

@@ -1,6 +1,6 @@
 # Resultados, tiempo y patrones — contrato interior v1
 
-Diseño para el futuro Scala. El exterior existente permanece:
+Contrato vigente implementado por Scala. El exterior HTTP permanece:
 gameId, matchId, state, metrics y patterns; véase [integration-api.md](integration-api.md).
 Esta versión interior se identifica por IDs versionados de las capacidades
 y la versión del perfil; no se agrega un campo obligatorio exterior.
@@ -68,8 +68,8 @@ El cierre no convierte un promedio sin muestras en 0 ni repara datos inválidos.
 Para avg la cantidad de muestras es el denominador: si es cero, no hay valor.
 sum sin muestras es 0; count sin muestras es 0.
 
-Cálculos numéricos futuros en Decimal/BigDecimal. avg y segundos fraccionarios
-se redondean a seis posiciones decimales, HALF_EVEN, solo al serializar.
+Los cálculos numéricos utilizan BigDecimal. avg y segundos fraccionarios
+se redondean a seis posiciones decimales, HALF_EVEN, al preparar el valor de salida.
 No se redondea cada evento antes de sumar. Unidades no se mezclan.
 No se serializan NaN ni infinito y no se permite coerción de strings.
 
@@ -158,7 +158,7 @@ basis. No se promete consistencia entre procesos o reinicios.
 Modificar perfiles entre consultas puede cambiar valores finales:
 source.profileVersion permite reconocerlo.
 
-## Criterios de aceptación futura
+## Criterios verificables del motor implementado
 
 - Mismo snapshot/perfil → mismas métricas y patrones, incluso al repetir GET.
 - Juego nuevo con perfil existente en capacidades → sin cambiar el ejecutor.

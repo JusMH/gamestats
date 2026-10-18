@@ -1,5 +1,8 @@
 # Instalar GameStats {{VERSION}}
 
+<!-- Plantilla del repositorio: el generador sustituye VERSION. Las correcciones
+     de esta rama no modifican los manuales ya publicados bajo v1.0.0. -->
+
 Necesita Docker Desktop instalado e iniciado, con contenedores Linux y Docker
 Compose 2.20 o posterior. Esta entrega se verifica para Linux/amd64 (PC Intel/AMD).
 No necesita Go, Scala, Java, sbt, Python ni Git. La primera descarga requiere Internet.

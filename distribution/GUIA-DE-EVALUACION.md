@@ -1,5 +1,8 @@
 # Evaluación de GameStats {{VERSION}}
 
+<!-- Plantilla del repositorio: el generador sustituye VERSION. Las correcciones
+     de esta rama no modifican los manuales ya publicados bajo v1.0.0. -->
+
 El simulador es un productor HTTP independiente. Genera acontecimientos
 hipotéticos; no ejecuta videojuegos gráficos ni envía estadísticas calculadas.
 Go recibe y valida los eventos, coordina partidas y toma snapshots. Scala
