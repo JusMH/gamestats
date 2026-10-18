@@ -14,11 +14,11 @@ Recibir eventos de múltiples partidas y juegos, organizarlos y producir estadí
 | `scala-analysis/` | Transformación funcional, estadísticas y patrones en Scala. |
 | `simulator/` | Fuente simulada de eventos para pruebas y demostración. |
 | `docs/` | Arquitectura, contrato de eventos y decisiones técnicas. |
-| `.github/workflows/` | CI implementada; validación remota pendiente. CD pendiente. |
+| `.github/workflows/` | CI aprobada. Publicación GHCR preparada; primera publicación pendiente. |
 
 ## Estado del proyecto
 
-**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI está implementada con GitHub Actions y pendiente de su primera ejecución remota; CD y despliegue siguen pendientes. Ver [pipeline y verificaciones](.github/workflows/README.md). Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
+**Implementación 3 de Go disponible.** El servicio HTTP valida el contrato v1, almacena eventos en memoria por juego y partida, controla inicio/cierre y duplicados, y permite consultar el estado de ingestión. Incluye pruebas automatizadas de validación, ciclo de vida y concurrencia. Incluye el mecanismo HTTP de integración bajo demanda con Scala mediante snapshots de partidas abiertas o cerradas. Scala 4B ofrece HTTP real, count/sum/avg, duración, ventanas temporales y el analizador de líneas de Gato; el simulador multijuego ya produce seis partidas concurrentes con verificaciones propias en vivo y al cerrar. Docker y Compose están implementados y verificados con los tres contenedores; CI está aprobada en GitHub Actions. La distribución académica con GHCR está preparada, todavía sin publicar imágenes ni ZIP definitivo; el despliegue remoto queda fuera de esta modalidad de entrega. Ver [pipeline y verificaciones](.github/workflows/README.md). Ver [ejecución y verificaciones Docker](docs/docker.md). Ver el [contrato de integración](docs/integration-api.md) y el [diseño de plantillas componibles](docs/analysis-templates.md). Ver la [ejecución Scala](scala-analysis/README.md) y las [arquitectura y verificaciones 4B](docs/scala-4b.md): los 13 fixtures multijuego se prueban con el motor y el puente Go reales.
 
 Consultar [arquitectura](docs/architecture.md) y [contrato de eventos](docs/events.md).
 
@@ -67,7 +67,7 @@ Integración real ejecutada: 50 eventos aceptados en seis partidas y 60 consulta
 verificadas (48 abiertas, 12 cerradas), con seis solicitudes simultáneas.
 También se comprobaron los casos negativos y el rechazo al reutilizar IDs.
 El README del simulador incluye arranque completo, script automatizado Windows,
-pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; el [workflow CI](.github/workflows/README.md) está preparado; publicación y deployment requieren una decisión de infraestructura.
+pruebas y limitaciones. La [ejecución Docker Compose](docs/docker.md) prepara los tres componentes; el [workflow CI](.github/workflows/README.md) está aprobado y la [publicación académica](docs/academic-distribution.md) queda preparada mediante aprobación manual desde main y Release creada al final.
 
 ## Ejecución con Docker Compose
 
@@ -96,6 +96,20 @@ Scala/MUnit y sus 13 fixtures, empaquetado, contratos, 16 pruebas de infraestruc
 e integración Docker real. Conserva evidencia y reportes XML aun cuando fallen
 las pruebas; CI result exige éxito de todos los trabajos.
 
-El workflow está validado localmente, pero aún no se ha ejecutado en GitHub.
-No se publican imágenes ni se realiza deployment. La guía del pipeline explica
-versiones, reproducción local, diagnóstico y pasos de revisión del primer PR.
+CI fue aprobada y fusionada mediante el PR #11. La guía del pipeline explica
+versiones, reproducción local, diagnóstico y artefactos. CI mantiene permisos
+de solo lectura; la publicación utiliza un workflow independiente.
+
+## Entrega académica con Docker Desktop (preparada, pendiente de publicación)
+
+La [guía de distribución](docs/academic-distribution.md) prepara tres imágenes
+GHCR y GameStats-Entrega-v1.0.0.zip con Compose fijado por digest y manuales en
+español. El profesor necesitará únicamente Docker Desktop y conexión para la
+primera descarga; no necesitará Git ni runtimes de desarrollo.
+
+**Todavía no hay una distribución publicada y verificada para entregar.** La publicación requiere
+aprobación manual de versión y SHA de main, descarga anónima de las tres imágenes
+y prueba completa del paquete. Solo al final se crea un borrador con todos los
+adjuntos y se publica la Release, compatible con Releases inmutables.
+Los [manuales](distribution/INSTALACION.md) son plantillas de esa futura entrega.
+No se implementó deployment remoto ni se publicaron imágenes en esta tarea.

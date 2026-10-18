@@ -1,0 +1,65 @@
+# Plantilla prevista: imágenes aún NO publicadas. El ZIP generado fija digests reales.
+name: gamestats-evaluacion
+
+services:
+  scala-analysis:
+    image: ghcr.io/jusmh/gamestats-scala-analysis:v1.0.0
+    platform: linux/amd64
+    environment:
+      SCALA_HOST: 0.0.0.0
+      SCALA_PORT: "9000"
+      SCALA_PROFILES_DIR: /app/profiles
+    expose:
+      - "9000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    stop_grace_period: 10s
+
+  go-ingestion:
+    image: ghcr.io/jusmh/gamestats-go-ingestion:v1.0.0
+    platform: linux/amd64
+    environment:
+      SCALA_SERVICE_URL: http://scala-analysis:9000
+    ports:
+      - "127.0.0.1:${GO_PORT:-8080}:8080"
+    depends_on:
+      scala-analysis:
+        condition: service_healthy
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    stop_grace_period: 10s
+
+  simulator:
+    profiles: [tools]
+    image: ghcr.io/jusmh/gamestats-simulator:v1.0.0
+    platform: linux/amd64
+    # Prefix stays in ENTRYPOINT when 'compose run' replaces command.
+    # An explicit later --go-url still overrides it through Go's flag parser.
+    entrypoint: ["/usr/local/bin/simulator", "--go-url", "http://go-ingestion:8080"]
+    command:
+      - --run-id
+      - "${SIM_RUN_ID:-docker-demo-01}"
+      - --mode
+      - "${SIM_MODE:-demo}"
+      - --verify=true
+      - --concurrency
+      - "${SIM_CONCURRENCY:-6}"
+      - --timeout
+      - "${SIM_TIMEOUT:-10s}"
+      - --max-duration
+      - "${SIM_MAX_DURATION:-2m}"
+    depends_on:
+      scala-analysis:
+        condition: service_healthy
+      go-ingestion:
+        condition: service_healthy
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    restart: "no"

@@ -9,8 +9,9 @@
 | Scala 4B: patrones y especialización | Implementado | Ventanas temporales, tablero Gato y 13 fixtures completos, motor puro/HTTP/integración. |
 | Simulador 5 | Implementado | Seis partidas propias, tres juegos, productores HTTP, fases concurrentes y verificación independiente en vivo/final. |
 | Docker y Compose 6 | Implementado y verificado | Tres imágenes, salud, red interna, tarea finita y verificación; estado ejecutado en docker.md. |
-| CI 7: GitHub Actions | Implementado; ejecución remota pendiente | Go/race, Scala, contratos, integración Docker y artefactos; ver README del pipeline. |
-| CD y deployment | Pendiente | Requiere decisiones de registro, infraestructura y credenciales. |
+| CI 7: GitHub Actions | Implementado y aprobado en GitHub (PR #11) | Go/race, Scala, contratos, integración Docker y artefactos; ver README del pipeline. |
+| Distribución académica 8 | Preparada; publicación pendiente | Workflow Release → GHCR → ZIP con digests y prueba anónima; aún no entregable. |
+| Deployment remoto | Fuera de la modalidad académica local | Requiere una decisión posterior de infraestructura. |
 
 La implementación 5 no modificó lógica Go/Scala, perfiles ni fixtures.
 Documentación operativa: [Go](../go-ingestion/README.md),
@@ -33,11 +34,14 @@ y [simulador](../simulator/README.md); ejecución de contenedores en [Docker](do
 | Simultaneidad | Workers por partida y barreras; seis solicitudes HTTP simultáneas demostradas. |
 | Pruebas de contratos e integración | 13 fixtures Scala; escenarios propios del simulador con servicios reales. |
 | Docker y ejecución integrada reproducible | Tres Dockerfiles multietapa y Compose; verificación y resultados en docker.md. |
-| Integración continua | Workflow implementado y validado localmente; primera ejecución GitHub pendiente. |
-| CD y deployment funcional | Pendientes. |
+| Integración continua | CI aprobada en GitHub y fusionada en PR #11. |
+| Distribución sin herramientas de desarrollo | Preparada; imágenes públicas y verificación completa pendientes. |
+| Deployment remoto | No implementado. |
 | Documentación y defensa | Contratos, perfiles, fixtures, README e informes reproducibles locales. |
 
-El MVP académico completo aún requiere validar CI en GitHub, CD, despliegue y su validación final.
+La entrega local académica requiere publicar las imágenes, verificar acceso
+anónimo y validar el ZIP completo. Si la rúbrica exige alojamiento remoto,
+esa interpretación debe acordarse aparte; esta distribución no lo implementa.
 Docker dispone de una etapa específica de verificación; no se da por concluida
 la entrega académica por disponer de ejecución local.
 
@@ -97,24 +101,43 @@ verificador 30 JSON/13 pares/9 mutaciones; actionlint y guards de evidencia.
 El verificador Docker real pasó dos demos 6/50/60, negativos, duplicados,
 perfiles ausentes y limpieza en el proyecto exclusivo ci-local-20261017-7.
 
-Esto no acredita una ejecución remota de GitHub Actions: queda pendiente
-subir la rama y abrir el PR por decisión humana. Tras la primera ejecución,
-revisar logs, artefactos de 14 días, healthchecks y resourcesReleased=true.
-La limitación histórica del host Windows para -race permanece en ese host;
-la prueba sí se ejecutó en Linux durante esta etapa y es obligatoria en CI.
+CI del PR #11 ya fue aprobada y fusionada. El detector de carreras se mantiene
+obligatorio en CI; no se desactivan verificaciones al preparar publicación.
 
-## Próxima tarea: publicación y deployment, previa decisión de infraestructura
+## Etapa 8: publicación y distribución académica
 
-1. Completar la primera ejecución CI remota y resolver cualquier diferencia
-   del runner sin ocultar fallos ni desactivar verificaciones.
-2. Decidir plataforma, registro, política de versiones y retención de imágenes.
-3. Acordar credenciales de mínimo privilegio y separación CI/CD.
-4. Diseñar deployment y verificación de salud/análisis en esa infraestructura.
-5. Resolver la volatilidad de Go y las políticas de acceso según el alcance
-   aprobado; no asumir persistencia o producción a partir de Compose local.
+Se preparó un workflow independiente, activado manualmente desde main con SHA revisado y confirmación, con control
+de main/CI exacta, permisos mínimos separados, rechazo de tags GHCR existentes,
+labels OCI y registro de digests reales. El Compose de desarrollo no cambia.
+El Compose de evaluación usa únicamente imágenes; el ZIP contiene configuración,
+manuales y manifiesto, sin fuentes ni herramientas de desarrollo.
 
-Se propone CI result como check obligatorio, pero no se modificaron reglas
-de main. No hay publicación de imágenes ni deployment implementados.
+La [guía técnica](academic-distribution.md) documenta publicación inicial,
+visibilidad pública manual, instalación del profesor y recuperación. Antes de
+adjuntar el ZIP se exige descarga anónima e integración completa desde el paquete
+extraído en un directorio temporal. La prueba conserva imágenes compartidas y
+limpia solo sus contenedores/red. No existe publicación desde PR.
+
+Verificado localmente: 24 pruebas específicas de distribución, actionlint,
+Compose válido, 16 pruebas existentes y verificador documental. Se generó un
+ZIP PRUEBA con digests ficticios identificados; no es material entregable.
+Publicación GHCR, acceso público real, subida de adjuntos e instalación completa
+del ZIP definitivo siguen pendientes de ejecutar después de revisión.
+
+## Siguiente paso: primera Release académica y validación del evaluador
+
+1. Revisar y fusionar la Etapa 8; esperar CI exitosa exacta del commit en main.
+2. Iniciar manualmente el workflow desde main con v1.0.0, SHA revisado y
+   confirmación PUBLICAR v1.0.0, sin crear tag/Release previamente.
+3. Confirmar los tres paquetes GHCR públicos; cambiar visibilidad solo con
+   autorización administrativa y reejecutar jobs fallidos si corresponde.
+4. Exigir verificación anónima, demo/negativos/IDs y limpieza; solo entonces
+   crear borrador con todos los adjuntos verificados y publicar la Release.
+   El flujo admite Releases inmutables; no distribuir artefactos fallidos.
+5. Validar la experiencia Docker Desktop del profesor. ARM64, funcionamiento
+   offline y deployment remoto no forman parte de lo verificado.
+
+No se crearon tags, Releases, commits, push ni paquetes durante esta etapa.
 
 ## Extensiones fuera del alcance actual
 

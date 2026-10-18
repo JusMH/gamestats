@@ -28,3 +28,6 @@ Thumbs.db
 # Docker verification artifacts
 /docker/evidence/
 /docker/__pycache__/
+
+# Academic distribution local Python cache
+/distribution/__pycache__/
