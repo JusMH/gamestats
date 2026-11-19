@@ -39,7 +39,33 @@ func NewHandlerWithAnalyzer(analyzer Analyzer) http.Handler {
 	mux.HandleFunc("/events", service.acceptEvent)
 	mux.HandleFunc("/matches/{gameId}/{matchId}", service.getMatch)
 	mux.HandleFunc("/results/{gameId}/{matchId}", service.getResults)
+	mux.HandleFunc("/dashboard", service.getDashboard)
 	return mux
+}
+
+// Scala owns cross-match calculations as well as per-match analytics.
+func (a *api) getDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	client, ok := a.analyzer.(interface {
+		Dashboard(context.Context, []matches.EventSnapshot) (json.RawMessage, error)
+	})
+	if !ok {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "dashboard analysis is not configured"})
+		return
+	}
+	result, err := client.Dashboard(r.Context(), a.matches.AllEvents())
+	if err != nil {
+		status := http.StatusBadGateway
+		if errors.Is(err, analysis.ErrDashboardLimit) {
+			status = http.StatusRequestEntityTooLarge
+		}
+		writeJSON(w, status, map[string]string{"error": "dashboard analysis failed or snapshot capacity exceeded"})
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func health(w http.ResponseWriter, r *http.Request) {

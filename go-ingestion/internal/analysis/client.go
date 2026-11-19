@@ -20,6 +20,7 @@ const DefaultTimeout = 5 * time.Second
 const maxResponseBytes = 8 << 20
 
 var ErrInvalidResponse = errors.New("invalid analysis response")
+var ErrDashboardLimit = errors.New("dashboard snapshot exceeds 8 MiB")
 
 // Result leaves metric and pattern semantics entirely to Scala. RawMessage
 // preserves arbitrary nested JSON and numbers without float64 conversion.
@@ -96,4 +97,46 @@ func (c *Client) Analyze(ctx context.Context, snapshot matches.EventSnapshot) (R
 func isArray(value json.RawMessage) bool {
 	value = bytes.TrimSpace(value)
 	return len(value) > 0 && value[0] == '['
+}
+
+// Dashboard forwards all snapshots without computing any statistics in Go.
+func (c *Client) Dashboard(ctx context.Context, snapshots []matches.EventSnapshot) (json.RawMessage, error) {
+	body, err := json.Marshal(map[string]any{"matches": snapshots})
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > maxResponseBytes {
+		return nil, ErrDashboardLimit
+	}
+	endpoint := strings.TrimSuffix(c.endpoint, "/analyze") + "/analyze-summary"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	response, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("summary HTTP status %d", response.StatusCode)
+	}
+	body, err = io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(body) > maxResponseBytes {
+		return nil, ErrInvalidResponse
+	}
+	var result struct {
+		Source  string          `json:"source"`
+		Totals  json.RawMessage `json:"totals"`
+		Games   json.RawMessage `json:"games"`
+		Matches json.RawMessage `json:"matches"`
+	}
+	if json.Unmarshal(body, &result) != nil || result.Source != "GameStats / Scala" || !json.Valid(result.Totals) || !isArray(result.Games) || !isArray(result.Matches) {
+		return nil, ErrInvalidResponse
+	}
+	return json.RawMessage(body), nil
 }

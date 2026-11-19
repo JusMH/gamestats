@@ -168,3 +168,21 @@ func (m *Manager) GetEvents(gameID, matchID string) (EventSnapshot, error) {
 	}
 	return snapshot, nil
 }
+
+// AllEvents observes the registry once, then copies each match independently.
+// It is a per-match consistent collection, not a global transaction across games.
+func (m *Manager) AllEvents() []EventSnapshot {
+	m.mu.RLock()
+	keys := make([]key, 0, len(m.matches))
+	for k := range m.matches {
+		keys = append(keys, k)
+	}
+	m.mu.RUnlock()
+	result := make([]EventSnapshot, 0, len(keys))
+	for _, k := range keys {
+		if snapshot, err := m.GetEvents(k.gameID, k.matchID); err == nil {
+			result = append(result, snapshot)
+		}
+	}
+	return result
+}

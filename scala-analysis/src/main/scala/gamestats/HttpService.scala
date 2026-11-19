@@ -59,6 +59,7 @@ object HttpService:
       val expectedMethod = path match
         case "/health" => Some("GET")
         case "/analyze" => Some("POST")
+        case "/analyze-summary" => Some("POST")
         case _ => None
       expectedMethod match
         case None => send(exchange, 404, error("not_found"))
@@ -71,16 +72,18 @@ object HttpService:
           val bytes = exchange.getRequestBody.readNBytes(MaxBodyBytes + 1)
           if bytes.length > MaxBodyBytes then send(exchange, 413, error("request_too_large"))
           else
-            val result = for
-              json <- Json.parse(bytes)
-              snapshot <- Decoding.snapshot(json)
-              analyzed <- engine.analyze(snapshot)
-            yield analyzed
+            val result: Checked[Json] =
+              if path == "/analyze-summary" then Json.parse(bytes).flatMap(Summary.analyze(_, engine))
+              else for
+                json <- Json.parse(bytes)
+                snapshot <- Decoding.snapshot(json)
+                analyzed <- engine.analyze(snapshot)
+              yield analyzed.json
             result match
               case Left(problem) =>
                 send(exchange, 400, error(problem.code))
               case Right(analyzed) =>
-                send(exchange, 200, analyzed.json)
+                send(exchange, 200, analyzed)
     catch
       case NonFatal(_) =>
         // Do not return exceptions, input bodies, profiles or internal addresses.
