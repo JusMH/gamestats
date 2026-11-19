@@ -1,7 +1,11 @@
 FROM eclipse-temurin:21.0.12_8-jdk-alpine-3.23@sha256:52ca1500049e2e2e7cee85fc4cd8689108792dc2bde18161b7f9236f609f0dea AS build
 WORKDIR /work
 # Same launcher/version/checksum as sbtw.ps1, from Maven Central only.
-RUN wget -q -O /tmp/sbt-launch.jar https://repo.maven.apache.org/maven2/org/scala-sbt/sbt-launch/1.11.7/sbt-launch-1.11.7.jar \
+RUN for attempt in 1 2 3 4 5; do \
+      wget -T 30 -q -O /tmp/sbt-launch.jar https://repo.maven.apache.org/maven2/org/scala-sbt/sbt-launch/1.11.7/sbt-launch-1.11.7.jar \
+      && echo "f92a2095ac75008764fe3b2b793ffe624c4fbef5bfd9b0022e4bc2daf668c651  /tmp/sbt-launch.jar" | sha256sum -c - && break; \
+      sleep 3; \
+    done \
     && echo "f92a2095ac75008764fe3b2b793ffe624c4fbef5bfd9b0022e4bc2daf668c651  /tmp/sbt-launch.jar" | sha256sum -c -
 COPY scala-analysis/build.sbt ./
 COPY scala-analysis/project/build.properties scala-analysis/project/repositories scala-analysis/project/DockerPackaging.scala ./project/
